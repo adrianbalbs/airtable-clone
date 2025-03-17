@@ -1,11 +1,11 @@
 import { Bell, BookOpen, ChevronDown, ChevronRight, CircleHelp, Grid2x2, LogOut, Menu, Plus, Search, ShoppingBag, Upload } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
-import { MenuButton, Menu as HeadlessMenu, MenuItems, MenuItem, MenuSeparator } from "@headlessui/react";
 import { redirect } from "next/navigation";
+import BaseGrid from "./components/baseCard";
+import ProfileMenu from "./components/profileMenu";
 
 export default async function Home() {
     const session = await auth();
@@ -36,30 +36,7 @@ export default async function Home() {
                     <div className="w-[30px] h-[30px] flex items-center hover:bg-slate-200 cursor-pointer justify-center border border-slate-300 rounded-full mr-5">
                         <Bell size={15} />
                     </div>
-                    <HeadlessMenu>
-                        <MenuButton className="w-[30px] h-[30px] flex items-center justify-center bg-primary border border-white rounded-full cursor-pointer">
-                            <p>A</p>
-                        </MenuButton>
-                        <MenuItems anchor="bottom end" className="w-[296px] h-36 bg-white z-10 mt-1 border border-slate-300 rounded-xl shadow-lg p-4">
-                            <MenuItem>
-                                <div className="pt-1 pb-2">
-                                    <p className="block text-sm font-semibold">
-                                        Adrian Balbalosa
-                                    </p>
-                                    <span className="text-gray-700 text-sm">adrianbalbs@gmail.com</span>
-                                </div>
-                            </MenuItem>
-                            <MenuSeparator className="my-2 h-px bg-slate-300" />
-                            <MenuItem>
-                                <Link href="/api/auth/signout" className="flex w-full hover:bg-slate-200 text-sm cursor-pointer rounded-md p-2 items-center">
-                                    <LogOut size={15} className="mr-2" />
-                                    <p>
-                                        Logout
-                                    </p>
-                                </Link>
-                            </MenuItem>
-                        </MenuItems>
-                    </HeadlessMenu>
+                    <ProfileMenu />
                 </div>
             </header>
             <div className="sticky flex min-h-screen w-full overflow-auto text-black pt-14">
@@ -106,7 +83,7 @@ export default async function Home() {
                     </nav>
                 </div>
                 <main className="bg-gray-50 w-full pt-10 px-14">
-                    <div className="flex flex-col h-full max-w-[1820px]">
+                    <div className="flex flex-col h-full max-w-[1920px]">
                         <h1 className="text-3xl font-semibold mb-10">Home</h1>
                         <div className="flex justify-between items-center mb-5">
                             <div className="flex">
@@ -128,65 +105,8 @@ export default async function Home() {
                                 </div>
                             </div>
                         </div>
-                        <div className="flex flex-col mb-5">
-                            <h4 className="text-gray-500 text-sm mb-3">Today</h4>
-                            <div className="grid grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2 w-full">
-                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm hover:shadow-md cursor-pointer">
-                                    <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
-                                        <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
-                                            <span className="text-xl">Un</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <h4 className="text-sm mb-2">Untitled Base</h4>
-                                        <p className="text-xs text-gray-500">Base</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm hover:shadow-md cursor-pointer">
-                                    <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
-                                        <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
-                                            <span className="text-xl">Un</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <h4 className="text-sm mb-2">Untitled Base</h4>
-                                        <p className="text-xs text-gray-500">Base</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex flex-col mb-5">
-                            <h4 className="text-gray-500 text-sm mb-3">Past 7 days</h4>
-                            <div className="grid grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2 w-full">
-                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm hover:shadow-md cursor-pointer">
-                                    <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
-                                        <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
-                                            <span className="text-xl">Un</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <h4 className="text-sm mb-2">Untitled Base</h4>
-                                        <p className="text-xs text-gray-500">Base</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="flex flex-col mb-5">
-                            <h4 className="text-gray-500 text-sm mb-3">Older</h4>
-                            <div className="grid grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2 w-full">
-                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm hover:shadow-md cursor-pointer">
-                                    <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
-                                        <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
-                                            <span className="text-xl">Un</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex flex-col">
-                                        <h4 className="text-sm mb-2">Untitled Base</h4>
-                                        <p className="text-xs text-gray-500">Base</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <BaseGrid title="Today" />
+                        <BaseGrid title="Past 7 days" />
                     </div>
                 </main>
             </div>
