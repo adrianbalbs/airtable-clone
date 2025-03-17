@@ -17,7 +17,6 @@ export default async function Home() {
             <header className="fixed w-full flex h-14 items-center justify-between px-5 border-b border-slate-300 z-10">
                 <div className="flex gap-5 items-center flex-shrink-0">
                     <Menu className="text-slate-400 hover:text-black cursor-pointer" size={20} />
-                    {/*<h3 className="font-bold">Airtable</h3>*/}
                     <Image src="/airtable.svg" alt="Airtable Logo" width={100} height={100} />
                 </div>
                 <div className="border border-slate-300 shrink-0 rounded-full py-1.5 px-4 flex items-center shadow-sm hover:shadow-md cursor-pointer">
@@ -40,7 +39,7 @@ export default async function Home() {
                     </div>
                 </div>
             </header>
-            <div className="flex min-h-screen w-full overflow-auto text-black pt-14">
+            <div className="sticky flex min-h-screen w-full overflow-auto text-black pt-14">
                 <div className="border-slate-300 border-r min-w-[300px] px-3 py-5">
                     <nav className="flex flex-col min-h-[568px] h-full gap-1">
                         <div className="flex flex-col h-full gap-4">
@@ -109,7 +108,7 @@ export default async function Home() {
                         <div className="flex flex-col mb-5">
                             <h4 className="text-gray-500 text-sm mb-3">Today</h4>
                             <div className="grid grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2 w-full">
-                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm">
+                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm hover:shadow-md cursor-pointer">
                                     <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
                                         <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
                                             <span className="text-xl">Un</span>
@@ -120,7 +119,7 @@ export default async function Home() {
                                         <p className="text-xs text-gray-500">Base</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm">
+                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm hover:shadow-md cursor-pointer">
                                     <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
                                         <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
                                             <span className="text-xl">Un</span>
@@ -136,7 +135,7 @@ export default async function Home() {
                         <div className="flex flex-col mb-5">
                             <h4 className="text-gray-500 text-sm mb-3">Past 7 days</h4>
                             <div className="grid grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2 w-full">
-                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm">
+                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm hover:shadow-md cursor-pointer">
                                     <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
                                         <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
                                             <span className="text-xl">Un</span>
@@ -152,7 +151,7 @@ export default async function Home() {
                         <div className="flex flex-col mb-5">
                             <h4 className="text-gray-500 text-sm mb-3">Older</h4>
                             <div className="grid grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2 w-full">
-                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm">
+                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm hover:shadow-md cursor-pointer">
                                     <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
                                         <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
                                             <span className="text-xl">Un</span>
