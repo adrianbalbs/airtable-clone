@@ -2,8 +2,8 @@ import { Bell, BookOpen, ChevronDown, ChevronRight, CircleHelp, Grid2x2, LogOut,
 import Image from "next/image";
 import Link from "next/link";
 
-import { auth, signOut } from "~/server/auth";
-import { api, HydrateClient } from "~/trpc/server";
+import { auth } from "~/server/auth";
+import { HydrateClient } from "~/trpc/server";
 import { MenuButton, Menu as HeadlessMenu, MenuItems, MenuItem, MenuSeparator } from "@headlessui/react";
 import { redirect } from "next/navigation";
 
