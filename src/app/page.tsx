@@ -1,4 +1,4 @@
-import { Bell, BookOpen, ChevronDown, ChevronRight, CircleHelp, Grid2x2, LogOut, Menu, Plus, Search, ShoppingBag, Upload } from "lucide-react";
+import { Bell, BookOpen, ChevronDown, ChevronRight, CircleHelp, Grid2x2, Menu, Plus, Search, ShoppingBag, Upload } from "lucide-react";
 import Image from "next/image";
 
 import { auth } from "~/server/auth";
