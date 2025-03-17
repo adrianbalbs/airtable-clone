@@ -1,4 +1,4 @@
-import { Bell, BookOpen, ChevronRight, CircleHelp, Menu, Plus, Search, ShoppingBag, Upload } from "lucide-react";
+import { Bell, BookOpen, ChevronDown, ChevronRight, CircleHelp, Grid2x2, Menu, Plus, Search, ShoppingBag, Upload } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -43,16 +43,16 @@ export default async function Home() {
             <div className="flex min-h-screen w-full overflow-auto text-black pt-14">
                 <div className="border-slate-300 border-r min-w-[300px] px-3 py-5">
                     <nav className="flex flex-col min-h-[568px] h-full gap-1">
-                        <div className="flex flex-col h-full">
+                        <div className="flex flex-col h-full gap-4">
                             <div className="flex justify-between items-center hover:bg-slate-200 px-2.5 py-2 rounded-md cursor-pointer">
                                 <h4>Home</h4>
-                                <ChevronRight size={20} />
+                                <ChevronRight size={20} className="hover:bg-slate-300 rounded-md" />
                             </div>
                             <div className="flex justify-between items-center hover:bg-slate-200 px-2.5 py-2 rounded-md cursor-pointer">
                                 <h4>All Workspaces</h4>
                                 <div className="flex gap-2">
-                                    <Plus size={20} />
-                                    <ChevronRight size={20} />
+                                    <Plus size={20} className="hover:bg-slate-300 rounded-md" />
+                                    <ChevronRight size={20} className="hover:bg-slate-300 rounded-md" />
                                 </div>
                             </div>
                         </div>
@@ -83,7 +83,90 @@ export default async function Home() {
                         </div>
                     </nav>
                 </div>
-                <main className="bg-gray-50 w-full flex flex-col"></main>
+                <main className="bg-gray-50 w-full pt-10 px-14">
+                    <div className="flex flex-col h-full max-w-[1820px]">
+                        <h1 className="text-3xl font-semibold mb-10">Home</h1>
+                        <div className="flex justify-between items-center mb-5">
+                            <div className="flex">
+                                <div className="flex shrink-0 items-center mr-5 text-gray-500 hover:text-black cursor-pointer">
+                                    <p className="mr-2">Opened by you</p>
+                                    <ChevronDown size={15} />
+                                </div>
+                                <div className="flex shrink-0 items-center text-gray-500 hover:text-black cursor-pointer">
+                                    <p className="mr-2">Show all types</p>
+                                    <ChevronDown size={15} />
+                                </div>
+                            </div>
+                            <div className="flex gap-1">
+                                <div className="text-gray-500 rounded-full w-7 h-7 flex items-center justify-center hover:text-black cursor-pointer">
+                                    <Menu size={20} strokeWidth={1.5} />
+                                </div>
+                                <div className="text-black rounded-full bg-gray-300 w-7 h-7 flex items-center justify-center cursor-pointer">
+                                    <Grid2x2 size={20} strokeWidth={1.5} />
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col mb-5">
+                            <h4 className="text-gray-500 text-sm mb-3">Today</h4>
+                            <div className="grid grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2 w-full">
+                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm">
+                                    <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
+                                        <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
+                                            <span className="text-xl">Un</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <h4 className="text-sm mb-2">Untitled Base</h4>
+                                        <p className="text-xs text-gray-500">Base</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm">
+                                    <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
+                                        <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
+                                            <span className="text-xl">Un</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <h4 className="text-sm mb-2">Untitled Base</h4>
+                                        <p className="text-xs text-gray-500">Base</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col mb-5">
+                            <h4 className="text-gray-500 text-sm mb-3">Past 7 days</h4>
+                            <div className="grid grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2 w-full">
+                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm">
+                                    <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
+                                        <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
+                                            <span className="text-xl">Un</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <h4 className="text-sm mb-2">Untitled Base</h4>
+                                        <p className="text-xs text-gray-500">Base</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex flex-col mb-5">
+                            <h4 className="text-gray-500 text-sm mb-3">Older</h4>
+                            <div className="grid grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2 w-full">
+                                <div className="flex items-center border border-slate-300 bg-white h-[92px] rounded-md shadow-sm">
+                                    <div className="flex justify-center items-center w-[92px] h-[92px] min-w-[92px]">
+                                        <div className="flex justify-center items-center rounded-xl border border-gray-400 bg-primary w-[56px] h-[56px]">
+                                            <span className="text-xl">Un</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <h4 className="text-sm mb-2">Untitled Base</h4>
+                                        <p className="text-xs text-gray-500">Base</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
             </div>
         </HydrateClient>
     );
