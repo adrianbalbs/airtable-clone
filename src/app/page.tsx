@@ -34,7 +34,7 @@ export default async function Home() {
                     <div className="w-[30px] h-[30px] flex items-center hover:bg-slate-200 cursor-pointer justify-center border border-slate-300 rounded-full mr-5">
                         <Bell size={15} />
                     </div>
-                    <div className="w-[30px] h-[30px] flex items-center justify-center bg-primary border border-white rounded-full ">
+                    <div className="w-[30px] h-[30px] flex items-center justify-center bg-primary border border-white rounded-full cursor-pointer">
                         <p>A</p>
                     </div>
                 </div>
