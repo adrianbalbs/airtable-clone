@@ -1,4 +1,4 @@
-import { Bell, BookOpen, ChevronDown, ChevronRight, CircleHelp, Menu, Plus, Search, ShoppingBag, Upload } from "lucide-react";
+import { Bell, BookOpen, ChevronRight, CircleHelp, Menu, Plus, Search, ShoppingBag, Upload } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -76,6 +76,10 @@ export default async function Home() {
                                     <span>Import</span>
                                 </p>
                             </div>
+                            <button className="flex items-center justify-center text-sm text-white bg-[#176de1] rounded-md py-2 shadow-md mt-4">
+                                <Plus size={15} className="mr-1" />
+                                <p>Create</p>
+                            </button>
                         </div>
                     </nav>
                 </div>
