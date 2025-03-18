@@ -18,6 +18,7 @@ import { type AdapterAccount } from "next-auth/adapters";
  */
 export const createTable = pgTableCreator((name) => `airtable-clone_${name}`);
 
+// TODO: Remove
 export const posts = createTable(
   "post",
   {

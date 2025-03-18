@@ -16,8 +16,8 @@ import Image from "next/image";
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 import { redirect } from "next/navigation";
-import BaseGrid from "./components/baseCard";
-import ProfileMenu from "./components/profileMenu";
+import BaseGrid from "./components/base-card";
+import ProfileMenu from "./components/profile-menu";
 
 export default async function Home() {
   const session = await auth();
