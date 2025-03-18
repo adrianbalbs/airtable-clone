@@ -8,6 +8,13 @@
       "when": 1741688276917,
       "tag": "0000_shallow_iron_monger",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1742289130379,
+      "tag": "0001_sturdy_jack_murdock",
+      "breakpoints": true
     }
   ]
 }

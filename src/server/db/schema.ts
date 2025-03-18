@@ -56,8 +56,8 @@ export const bases = createTable(
       .notNull(),
   },
   (example) => ({
-    createdByIdIdx: index("created_by_idx").on(example.createdById),
-    nameIndex: index("name_idx").on(example.name),
+    createdByIdIdx: index("base_created_by_idx").on(example.createdById),
+    nameIndex: index("base_name_idx").on(example.name),
   }),
 );
 
