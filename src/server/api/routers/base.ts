@@ -6,13 +6,11 @@ import { TRPCError } from "@trpc/server";
 
 export const baseRouter = createTRPCRouter({
   getAllBasesByUser: protectedProcedure
-    .input(z.object({ id: z.string() }))
-    .query(async ({ ctx, input }) => {
-      const { id } = input;
+    .query(async ({ ctx }) => {
       return await ctx.db
         .select()
         .from(bases)
-        .where(eq(bases.createdById, id))
+        .where(eq(bases.createdById, ctx.session.user.id))
         .orderBy(desc(bases.updatedAt));
     }),
   getBaseById: protectedProcedure

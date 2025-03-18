@@ -1,23 +1,16 @@
 import {
   Bell,
-  BookOpen,
-  ChevronDown,
-  ChevronRight,
   CircleHelp,
-  Grid2x2,
   Menu,
-  Plus,
   Search,
-  ShoppingBag,
-  Upload,
 } from "lucide-react";
 import Image from "next/image";
 
 import { auth } from "~/server/auth";
 import { HydrateClient } from "~/trpc/server";
 import { redirect } from "next/navigation";
-import BaseGrid from "./components/base-card";
-import ProfileMenu from "./components/profile-menu";
+import ProfileMenu from "./_components/profile-menu";
+import Dashboard from "./_components/dasboard";
 
 export default async function Home() {
   const session = await auth();
@@ -59,83 +52,7 @@ export default async function Home() {
           <ProfileMenu />
         </div>
       </header>
-      <div className="sticky flex min-h-screen w-full overflow-auto pt-14 text-black">
-        <div className="min-w-[300px] border-r border-slate-300 px-3 py-5">
-          <nav className="flex h-full min-h-[568px] flex-col gap-1">
-            <div className="flex h-full flex-col gap-4">
-              <div className="flex cursor-pointer items-center justify-between rounded-md px-2.5 py-2 hover:bg-slate-200">
-                <h4>Home</h4>
-                <ChevronRight
-                  size={20}
-                  className="rounded-md hover:bg-slate-300"
-                />
-              </div>
-              <div className="flex cursor-pointer items-center justify-between rounded-md px-2.5 py-2 hover:bg-slate-200">
-                <h4>All Workspaces</h4>
-                <div className="flex gap-2">
-                  <Plus size={20} className="rounded-md hover:bg-slate-300" />
-                  <ChevronRight
-                    size={20}
-                    className="rounded-md hover:bg-slate-300"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <div className="mx-auto my-4 min-w-[90%] border-t border-gray-300"></div>
-              <div className="flex cursor-pointer items-center rounded-md px-2.5 py-2 hover:bg-slate-200">
-                <p className="flex items-center text-sm">
-                  <BookOpen size={15} className="mr-2" />
-                  <span>Templates and apps</span>
-                </p>
-              </div>
-              <div className="flex cursor-pointer items-center rounded-md px-2.5 py-2 hover:bg-slate-200">
-                <p className="flex items-center text-sm">
-                  <ShoppingBag size={15} className="mr-2" />
-                  <span>Marketplace</span>
-                </p>
-              </div>
-              <div className="flex cursor-pointer items-center rounded-md px-2.5 py-2 hover:bg-slate-200">
-                <p className="flex items-center text-sm">
-                  <Upload size={15} className="mr-2" />
-                  <span>Import</span>
-                </p>
-              </div>
-              <button className="mt-4 flex items-center justify-center rounded-md bg-[#176de1] py-2 text-sm text-white shadow-md">
-                <Plus size={15} className="mr-1" />
-                <p>Create</p>
-              </button>
-            </div>
-          </nav>
-        </div>
-        <main className="w-full bg-gray-50 px-14 pt-10">
-          <div className="flex h-full max-w-[1920px] flex-col">
-            <h1 className="mb-10 text-3xl font-semibold">Home</h1>
-            <div className="mb-5 flex items-center justify-between">
-              <div className="flex">
-                <div className="mr-5 flex shrink-0 cursor-pointer items-center text-gray-500 hover:text-black">
-                  <p className="mr-2">Opened by you</p>
-                  <ChevronDown size={15} />
-                </div>
-                <div className="flex shrink-0 cursor-pointer items-center text-gray-500 hover:text-black">
-                  <p className="mr-2">Show all types</p>
-                  <ChevronDown size={15} />
-                </div>
-              </div>
-              <div className="flex gap-1">
-                <div className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full text-gray-500 hover:text-black">
-                  <Menu size={20} strokeWidth={1.5} />
-                </div>
-                <div className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-gray-300 text-black">
-                  <Grid2x2 size={20} strokeWidth={1.5} />
-                </div>
-              </div>
-            </div>
-            <BaseGrid title="Today" />
-            <BaseGrid title="Past 7 days" />
-          </div>
-        </main>
-      </div>
+      <Dashboard />
     </HydrateClient>
   );
 }
