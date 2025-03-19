@@ -29,9 +29,10 @@ export const baseRouter = createTRPCRouter({
     .input(z.object({ name: z.string().min(6) }))
     .mutation(async ({ ctx, input }) => {
       const { name } = input;
-      await ctx.db
+      const [base] = await ctx.db
         .insert(bases)
-        .values({ name, createdById: ctx.session.user.id });
+        .values({ name, createdById: ctx.session.user.id }).returning();
+      return base
     }),
   deleteBase: protectedProcedure
     .input(z.object({ id: z.number() }))

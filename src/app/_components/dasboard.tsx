@@ -20,7 +20,10 @@ import Image from "next/image";
 import dayjs from "dayjs";
 import isToday from "dayjs/plugin/isToday";
 import isBetween from "dayjs/plugin/isBetween";
+import { useRouter } from "next/navigation";
 
+dayjs.extend(isBetween);
+dayjs.extend(isToday);
 
 function Sidebar({ setIsOpen }: { setIsOpen: Dispatch<SetStateAction<boolean>> }) {
   return (
@@ -87,32 +90,108 @@ function CardSkeleton() {
   )
 }
 
+function CreateBaseDialog({ handleCreateBase, isOpen, setIsOpen }: { handleCreateBase: () => void, isOpen: boolean, setIsOpen: Dispatch<SetStateAction<boolean>> }) {
+  return (
+    <Dialog open={isOpen} onClose={() => setIsOpen(false)} className="relative z-10">
+      <div className="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-30">
+        <DialogPanel
+          transition
+          className="w-full max-w-[752px] rounded-xl bg-white border border-slate-400 shadow-md duration-200 ease-out data-[closed]:transform-[scale(95%)] data-[closed]:opacity-0"
+        >
+          <div className="border-b border-slate-300 p-6 flex justify-between items-center">
+            <DialogTitle as="h1" className="font-semibold text-xl">
+              How do you want to start?
+            </DialogTitle>
+            <button
+              onClick={() => setIsOpen(false)}
+              className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-gray-300 text-black"
+            >
+              <X size={15} />
+            </button>
+          </div>
+          <div className="p-6">
+            <div className="flex mb-6">
+              <p className="font-semibold mr-1">Workspace: </p>
+              <div className="text-gray-600 flex items-center hover:text-black cursor-pointer"><p>My First Workspace</p><ChevronDown size={20} /></div>
+            </div>
+            <div className="flex gap-5">
+              <div className="flex flex-1 flex-col rounded-md border border-slate-300 hover:shadow-md cursor-pointer">
+                <Image src="/start-with-ai-v3.png" alt="Start with AI" width={340} height={340} className="w-full h-full" />
+                <div className="p-3">
+                  <h2 className="font-semibold text-xl mb-1">Build an app with AI</h2>
+                  <p>Cobuilder quickly turns your process into a custom app with data and interfaces.</p>
+                </div>
+              </div>
+              <div onClick={handleCreateBase} className="flex flex-1 flex-col rounded-md border border-slate-300 hover:shadow-md cursor-pointer">
+                <Image src="/start-with-data.png" alt="Start with Data" width={340} height={340} className="w-full h-full" />
+                <div className="p-3">
+                  <h2 className="font-semibold text-xl mb-1">Start from scratch</h2>
+                  <p>Build your ideal workflow starting with a blank table.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogPanel>
+      </div>
+    </Dialog>
+  )
+}
+
 
 export default function Dashboard() {
   const [isOpen, setIsOpen] = useState(false);
   const { data = [], isPending } = api.base.getAllBasesByUser.useQuery()
+  const utils = api.useUtils();
+  const router = useRouter();
 
-  dayjs.extend(isBetween);
-  dayjs.extend(isToday);
+  const baseCreate = api.base.createBase.useMutation({
+    async onMutate(newBase) {
+      const tempId = -Date.now()
+      router.push(`/${tempId}`);
+      await utils.base.getAllBasesByUser.cancel();
+      const prevData = utils.base.getAllBasesByUser.getData();
+
+      utils.base.getAllBasesByUser.setData(undefined, (old) => [
+        ...(old ?? []),
+        {
+          id: tempId,
+          name: newBase.name,
+          createdById: "temp",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]);
+      return { prevData };
+    },
+    onError(err, _newBase, ctx) {
+      console.error("Base creation failed:", err);
+      utils.base.getAllBasesByUser.setData(undefined, ctx?.prevData);
+      router.back();
+    },
+    onSettled: async () => {
+      await utils.base.getAllBasesByUser.invalidate();
+    },
+    onSuccess: (createdBase) => {
+      router.replace(`/${createdBase?.id}`);
+    },
+  });
+
+  const handleCreateBase = () => {
+    baseCreate.mutate({ name: "Untitled Base" });
+  };
 
   const today = dayjs();
   const sevenDaysAgo = today.subtract(7, "day");
 
-  const todayBases = [];
-  const last7DaysBases = [];
-  const olderBases = [];
+  const todayBases = data.filter(base => dayjs(base.updatedAt).isToday());
 
-  data.forEach((base) => {
-    const baseDate = dayjs(base.createdAt);
+  const last7DaysBases = data.filter(base =>
+    dayjs(base.updatedAt).isBetween(sevenDaysAgo, today.subtract(1, "day"), "day", "[]")
+  );
 
-    if (baseDate.isToday()) {
-      todayBases.push(base);
-    } else if (baseDate.isBetween(sevenDaysAgo, today, "day", "[]")) {
-      last7DaysBases.push(base);
-    } else {
-      olderBases.push(base);
-    }
-  });
+  const olderBases = data.filter(base =>
+    !dayjs(base.updatedAt).isToday() &&
+    !dayjs(base.updatedAt).isBetween(sevenDaysAgo, today, "day", "[]"))
 
 
   return (
@@ -142,7 +221,11 @@ export default function Dashboard() {
             </div>
           </div>
           {isPending ? <CardSkeleton /> :
-            data.length > 0 ? <BaseGrid title="Today" /> :
+            data.length > 0 ? <>
+              {todayBases.length > 0 && <BaseGrid title="Today" data={todayBases} />}
+              {last7DaysBases.length > 0 && <BaseGrid title="Last 7 days" data={last7DaysBases} />}
+              {olderBases.length > 0 && <BaseGrid title="Last 7 days" data={olderBases} />}
+            </> :
               (
 
                 <div className="w-full h-full flex justify-center items-center">
@@ -155,48 +238,7 @@ export default function Dashboard() {
               )
           }
         </div>
-        <Dialog open={isOpen} onClose={() => setIsOpen(false)} className="relative z-10">
-          <div className="fixed inset-0 z-10 flex items-center justify-center bg-black bg-opacity-30">
-            <DialogPanel
-              transition
-              className="w-full max-w-[752px] rounded-xl bg-white border border-slate-400 shadow-md duration-200 ease-out data-[closed]:transform-[scale(95%)] data-[closed]:opacity-0"
-            >
-              <div className="border-b border-slate-300 p-6 flex justify-between items-center">
-                <DialogTitle as="h1" className="font-semibold text-xl">
-                  How do you want to start?
-                </DialogTitle>
-                <button
-                  onClick={() => setIsOpen(false)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full hover:bg-gray-300 text-black"
-                >
-                  <X size={15} />
-                </button>
-              </div>
-              <div className="p-6">
-                <div className="flex mb-6">
-                  <p className="font-semibold mr-1">Workspace: </p>
-                  <div className="text-gray-600 flex items-center hover:text-black cursor-pointer"><p>My First Workspace</p><ChevronDown size={20} /></div>
-                </div>
-                <div className="flex gap-5">
-                  <div className="flex flex-1 flex-col rounded-md border border-slate-300 hover:shadow-md cursor-pointer">
-                    <Image src="/start-with-ai-v3.png" alt="Start with AI" width={340} height={340} className="w-full h-full" />
-                    <div className="p-3">
-                      <h2 className="font-semibold text-xl mb-1">Build an app with AI</h2>
-                      <p>Cobuilder quickly turns your process into a custom app with data and interfaces.</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-1 flex-col rounded-md border border-slate-300 hover:shadow-md cursor-pointer">
-                    <Image src="/start-with-data.png" alt="Start with Data" width={340} height={340} className="w-full h-full" />
-                    <div className="p-3">
-                      <h2 className="font-semibold text-xl mb-1">Start from scratch</h2>
-                      <p>Build your ideal workflow starting with a blank table.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </DialogPanel>
-          </div>
-        </Dialog>
+        <CreateBaseDialog isOpen={isOpen} setIsOpen={setIsOpen} handleCreateBase={handleCreateBase} />
       </main>
     </div>
   )

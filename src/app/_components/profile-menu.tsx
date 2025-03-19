@@ -8,11 +8,11 @@ import {
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 
-export default function ProfileMenu() {
+export default function ProfileMenu({ name, email }: { name: string, email: string }) {
   return (
     <Menu>
       <MenuButton className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full border border-white bg-primary">
-        <p>A</p>
+        <p>{name[0]}</p>
       </MenuButton>
       <MenuItems
         anchor="bottom end"
@@ -20,8 +20,8 @@ export default function ProfileMenu() {
       >
         <MenuItem>
           <div className="pb-2 pt-1">
-            <p className="block text-sm font-semibold">Adrian Balbalosa</p>
-            <span className="text-sm text-gray-700">adrianbalbs@gmail.com</span>
+            <p className="block text-sm font-semibold">{name}</p>
+            <span className="text-sm text-gray-700">{email}</span>
           </div>
         </MenuItem>
         <MenuSeparator className="my-2 h-px bg-slate-300" />
