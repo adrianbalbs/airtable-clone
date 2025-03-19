@@ -5,14 +5,13 @@ import { and, desc, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 
 export const baseRouter = createTRPCRouter({
-  getAllBasesByUser: protectedProcedure
-    .query(async ({ ctx }) => {
-      return await ctx.db
-        .select()
-        .from(bases)
-        .where(eq(bases.createdById, ctx.session.user.id))
-        .orderBy(desc(bases.updatedAt));
-    }),
+  getAllBasesByUser: protectedProcedure.query(async ({ ctx }) => {
+    return await ctx.db
+      .select()
+      .from(bases)
+      .where(eq(bases.createdById, ctx.session.user.id))
+      .orderBy(desc(bases.updatedAt));
+  }),
   getBaseById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -31,8 +30,9 @@ export const baseRouter = createTRPCRouter({
       const { name } = input;
       const [base] = await ctx.db
         .insert(bases)
-        .values({ name, createdById: ctx.session.user.id }).returning();
-      return base
+        .values({ name, createdById: ctx.session.user.id })
+        .returning();
+      return base;
     }),
   deleteBase: protectedProcedure
     .input(z.object({ id: z.number() }))

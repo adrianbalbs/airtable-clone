@@ -2,13 +2,13 @@ import Link from "next/link";
 import { type RouterOutputs } from "~/trpc/react";
 
 type BaseCardProps = {
-  id: number,
+  id: number;
   title: string;
 };
 
 type BaseGridProps = {
   title: string;
-  data: RouterOutputs["base"]["getAllBasesByUser"]
+  data: RouterOutputs["base"]["getAllBasesByUser"];
 };
 
 function BaseCard({ title, id }: BaseCardProps) {
@@ -35,7 +35,9 @@ export default function BaseGrid({ title, data }: BaseGridProps) {
     <div className="mb-5 flex flex-col">
       <h4 className="mb-3 text-sm text-gray-500">{title}</h4>
       <div className="grid w-full grid-cols-[repeat(auto-fill,_minmax(295px,_1fr))] gap-2">
-        {data.map(base => <BaseCard key={base.id} title={base.name} id={base.id} />)}
+        {data.map((base) => (
+          <BaseCard key={base.id} title={base.name} id={base.id} />
+        ))}
       </div>
     </div>
   );

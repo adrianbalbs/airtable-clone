@@ -1,9 +1,4 @@
-import {
-  Bell,
-  CircleHelp,
-  Menu,
-  Search,
-} from "lucide-react";
+import { Bell, CircleHelp, Menu, Search } from "lucide-react";
 import Image from "next/image";
 
 import { auth } from "~/server/auth";
@@ -49,7 +44,10 @@ export default async function Home() {
           <div className="mr-5 flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full border border-slate-300 hover:bg-slate-200">
             <Bell size={15} />
           </div>
-          <ProfileMenu name={session.user.name ?? "undefined"} email={session.user.email ?? "undefined"} />
+          <ProfileMenu
+            name={session.user.name ?? "undefined"}
+            email={session.user.email ?? "undefined"}
+          />
         </div>
       </header>
       <Dashboard />

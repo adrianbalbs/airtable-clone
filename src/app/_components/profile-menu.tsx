@@ -8,7 +8,13 @@ import {
 import { LogOut } from "lucide-react";
 import Link from "next/link";
 
-export default function ProfileMenu({ name, email }: { name: string, email: string }) {
+export default function ProfileMenu({
+  name,
+  email,
+}: {
+  name: string;
+  email: string;
+}) {
   return (
     <Menu>
       <MenuButton className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full border border-white bg-primary">
