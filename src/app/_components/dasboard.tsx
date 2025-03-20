@@ -277,10 +277,10 @@ export default function Dashboard() {
                 <BaseGrid title="Today" data={todayBases} />
               )}
               {last7DaysBases.length > 0 && (
-                <BaseGrid title="Last 7 days" data={last7DaysBases} />
+                <BaseGrid title="Past 7 days" data={last7DaysBases} />
               )}
               {olderBases.length > 0 && (
-                <BaseGrid title="Last 7 days" data={olderBases} />
+                <BaseGrid title="Older" data={olderBases} />
               )}
             </>
           ) : (
