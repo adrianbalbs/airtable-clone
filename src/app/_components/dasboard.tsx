@@ -248,7 +248,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="fixed flex min-h-screen w-full overflow-auto pt-14 text-black">
+    <div className="flex min-h-screen w-full overflow-auto pt-14 text-black">
       <Sidebar setIsOpen={setIsOpen} />
       <main className="w-full bg-gray-50 px-14 pt-10">
         <div className="flex h-full max-w-[1920px] flex-col">

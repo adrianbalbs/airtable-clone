@@ -29,8 +29,8 @@ export default async function Base({ params }: { params: { base: number } }) {
   }
   return (
     <>
-      <div className="fixed w-full">
-        <header className="z-10 flex h-14 w-full items-center justify-between bg-primary px-5">
+      <div className="fixed top-0 w-full">
+        <header className="flex h-14 w-full items-center justify-between bg-primary px-5">
           <div className="flex flex-shrink-0 items-center gap-5">
             <div className="flex items-center">
               <Image
@@ -114,7 +114,7 @@ export default async function Base({ params }: { params: { base: number } }) {
             </div>
           </div>
         </div>
-        <div className="flex w-full cursor-pointer items-center border-b border-slate-300 p-2 text-sm">
+        <div className="flex w-full items-center overflow-hidden border-b border-slate-300 p-2 text-sm">
           <div className="flex items-center rounded-sm bg-slate-200 px-2 py-1">
             <Menu size={15} className="mr-2" />
             <p>Views</p>
