@@ -1,0 +1,1 @@
+DROP TABLE "airtable-clone_post";
