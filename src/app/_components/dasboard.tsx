@@ -70,7 +70,11 @@ function Sidebar({
             </p>
           </div>
           <button
-            onClick={() => setIsOpen(true)}
+            onClick={(e) => {
+              e.preventDefault();
+              setIsOpen(true);
+            }}
+            type="submit"
             className="mt-4 flex items-center justify-center rounded-md bg-[#176de1] py-2 text-sm text-white shadow-md"
           >
             <Plus size={15} className="mr-1" />

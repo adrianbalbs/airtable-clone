@@ -81,7 +81,7 @@ export default async function Base({ params }: { params: { base: number } }) {
               <p className="mr-2 text-sm">Table 1</p>
               <ChevronDown size={15} />
             </div>
-            <div className="hover:bg-hover flex shrink-0 cursor-pointer items-center rounded-t-sm px-3 hover:text-black">
+            <div className="flex shrink-0 cursor-pointer items-center rounded-t-sm px-3 hover:bg-hover hover:text-black">
               <p className="mr-2 text-sm">Table 2</p>
             </div>
             <div className="flex cursor-pointer items-center hover:text-black">
