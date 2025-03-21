@@ -28,8 +28,8 @@ export default async function Base({ params }: { params: { base: number } }) {
     redirect("api/auth/signin");
   }
   return (
-    <>
-      <div className="fixed top-0 w-full">
+    <div className="flex min-h-screen flex-col">
+      <div className="w-full">
         <header className="flex h-14 w-full items-center justify-between bg-primary px-5">
           <div className="flex flex-shrink-0 items-center gap-5">
             <div className="flex items-center">
@@ -83,14 +83,14 @@ export default async function Base({ params }: { params: { base: number } }) {
             />
           </div>
         </header>
-        <div className="relative flex h-[32px] w-full bg-primary text-slate-600">
-          <div className="h-full w-4 bg-secondary"></div>
-          <div className="flex h-full w-full cursor-pointer overflow-hidden rounded-tr-lg bg-secondary">
-            <div className="relative z-10 flex shrink-0 items-center rounded-t-sm bg-white px-3 text-black">
+        <div className="flex h-[32px] bg-primary text-slate-600">
+          <div className="w-4 bg-secondary"></div>
+          <div className="flex flex-1 cursor-pointer overflow-hidden rounded-tr-lg bg-secondary">
+            <div className="flex shrink-0 items-center rounded-t-sm bg-white px-3 text-black">
               <p className="mr-2 text-sm">Table 1</p>
               <ChevronDown size={15} />
             </div>
-            <div className="flex shrink-0 cursor-pointer items-center rounded-t-sm px-3 hover:bg-hover hover:text-black">
+            <div className="hover:bg-hover flex shrink-0 cursor-pointer items-center rounded-t-sm px-3 hover:text-black">
               <p className="mr-2 text-sm">Table 2</p>
             </div>
             <div className="flex cursor-pointer items-center hover:text-black">
@@ -104,7 +104,7 @@ export default async function Base({ params }: { params: { base: number } }) {
             </div>
           </div>
           <div className="w-2 bg-primary" />
-          <div className="flex h-full items-center rounded-tl-lg bg-secondary">
+          <div className="flex items-center rounded-tl-lg bg-secondary">
             <p className="cursor-pointer px-4 text-sm hover:text-black">
               Extensions
             </p>
@@ -114,7 +114,7 @@ export default async function Base({ params }: { params: { base: number } }) {
             </div>
           </div>
         </div>
-        <div className="flex w-full items-center overflow-hidden border-b border-slate-300 p-2 text-sm">
+        <div className="flex items-center overflow-hidden border-b border-slate-300 p-2 text-sm">
           <div className="flex items-center rounded-sm bg-slate-200 px-2 py-1">
             <Menu size={15} className="mr-2" />
             <p>Views</p>
@@ -154,6 +154,11 @@ export default async function Base({ params }: { params: { base: number } }) {
           </div>
         </div>
       </div>
-    </>
+      <div className="flex h-full flex-1">
+        <div className="min-w-[300px] border-r border-slate-300 px-3 py-5">
+          <nav className="flex h-full min-h-[568px] flex-col gap-1"></nav>
+        </div>
+      </div>
+    </div>
   );
 }
