@@ -13,13 +13,15 @@ export const baseRouter = createTRPCRouter({
         table: tables.id,
         createdById: bases.createdById,
         createdAt: bases.createdAt,
-        updatedAt: bases.updatedAt
+        updatedAt: bases.updatedAt,
       })
       .from(bases)
       .innerJoin(tables, eq(bases.id, tables.base))
       .where(eq(bases.createdById, ctx.session.user.id))
       .orderBy(desc(bases.id), desc(bases.updatedAt));
   }),
+
+  // TODO: Update this to return a list of table ids for navigating to tables
   getBaseById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
@@ -32,6 +34,7 @@ export const baseRouter = createTRPCRouter({
       }
       return base;
     }),
+
   createBase: protectedProcedure
     .input(z.object({ name: z.string().min(6) }))
     .mutation(async ({ ctx, input }) => {
@@ -43,30 +46,37 @@ export const baseRouter = createTRPCRouter({
           .values({ name, createdById: ctx.session.user.id })
           .returning();
         if (!base) {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" })
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         }
-        const [table] = await tx.insert(tables).values({ name: "Table 1", base: base.id }).returning({ id: tables.id })
+        const [table] = await tx
+          .insert(tables)
+          .values({ name: "Table 1", base: base.id })
+          .returning({ id: tables.id });
         if (!table) {
-          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" })
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         }
 
         await tx.insert(columns).values([
           { name: "Name", type: "text", table: table.id },
           { name: "Notes", type: "text", table: table.id },
           { name: "Assignee", type: "text", table: table.id },
-          { name: "Status", type: "text", table: table.id }])
-
-        await tx.insert(rows).values([
-          { table: table.id },
-          { table: table.id },
-          { table: table.id },
-          { table: table.id },
+          { name: "Status", type: "text", table: table.id },
         ]);
+
+        await tx
+          .insert(rows)
+          .values([
+            { table: table.id },
+            { table: table.id },
+            { table: table.id },
+            { table: table.id },
+          ]);
         return { ...base, table: table.id };
-      })
+      });
 
       return base;
     }),
+
   deleteBase: protectedProcedure
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
@@ -82,6 +92,7 @@ export const baseRouter = createTRPCRouter({
         .delete(bases)
         .where(and(eq(bases.id, id), eq(bases.createdById, user)));
     }),
+
   updateBase: protectedProcedure
     .input(z.object({ id: z.number(), name: z.string().min(6) }))
     .mutation(async ({ ctx, input }) => {

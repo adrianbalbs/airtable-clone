@@ -21,11 +21,43 @@ import { type AdapterAccount } from "next-auth/adapters";
  */
 export const createTable = pgTableCreator((name) => `airtable-clone_${name}`);
 
+export const rows = createTable(
+  "rows",
+  {
+    id: serial("id").primaryKey(),
+    table: serial("table")
+      .references(() => tables.id, { onDelete: "cascade" })
+      .notNull(),
+    data: jsonb("data").default({}).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .$onUpdate(() => new Date())
+      .defaultNow()
+      .notNull(),
+  },
+  (row) => ({
+    createdByIdIdx: index("row_data_idx").using("gin", row.data),
+  }),
+);
 
-export const rows = createTable("rows", {
+export const rowsRelations = relations(rows, ({ one }) => ({
+  table: one(tables, {
+    fields: [rows.table],
+    references: [tables.id],
+  }),
+}));
+
+export const columnTypeEnum = pgEnum("column_type", ["text", "number"]);
+
+export const columns = createTable("column", {
   id: serial("id").primaryKey(),
-  table: serial("table").references(() => tables.id, { onDelete: "cascade" }).notNull(),
-  data: jsonb("data").default({}).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  table: serial("table")
+    .references(() => tables.id, { onDelete: "cascade" })
+    .notNull(),
+  type: columnTypeEnum("type").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -33,66 +65,33 @@ export const rows = createTable("rows", {
     .$onUpdate(() => new Date())
     .defaultNow()
     .notNull(),
-
-},
-  (row) => ({
-    createdByIdIdx: index("row_data_idx").using("gin", row.data),
-  }),
-
-)
-
-export const rowsRelations = relations(rows, ({ one }) => ({
-  table: one(tables, {
-    fields: [rows.table],
-    references: [tables.id]
-  })
-}));
-
-export const columnTypeEnum = pgEnum('column_type', ['text', 'number']);
-
-export const columns = createTable(
-  "column",
-  {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 255 }).notNull(),
-    table: serial("table").references(() => tables.id, { onDelete: "cascade" }).notNull(),
-    type: columnTypeEnum("type").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .$onUpdate(() => new Date())
-      .defaultNow()
-      .notNull(),
-  }
-)
+});
 
 export const columnsRelations = relations(columns, ({ one }) => ({
   table: one(tables, {
     fields: [columns.table],
-    references: [tables.id]
-  })
+    references: [tables.id],
+  }),
 }));
 
-export const tables = createTable(
-  "table",
-  {
-    id: serial("id").primaryKey(),
-    name: varchar("name", { length: 255 }).notNull(),
-    base: integer("base").references(() => bases.id, { onDelete: "cascade" }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .defaultNow()
-      .notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .$onUpdate(() => new Date())
-      .defaultNow()
-      .notNull(),
-  }
-)
+export const tables = createTable("table", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  base: integer("base")
+    .references(() => bases.id, { onDelete: "cascade" })
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .$onUpdate(() => new Date())
+    .defaultNow()
+    .notNull(),
+});
 
 export const tablesRelations = relations(tables, ({ many }) => ({
   columns: many(columns),
-  rows: many(rows)
+  rows: many(rows),
 }));
 
 export const bases = createTable(
