@@ -24,6 +24,7 @@ export function Table() {
     },
   ];
   const rows = Array.from({ length: 200 });
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       <div className="flex border-b border-slate-300">
