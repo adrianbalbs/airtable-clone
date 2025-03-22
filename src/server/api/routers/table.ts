@@ -185,7 +185,7 @@ export const tableRouter = createTRPCRouter({
       }
       const [updatedRow] = await ctx.db
         .update(rows)
-        .set({ data: sql`jsonb_set(${rows.data}, {${columnName}}, ${value})` })
+        .set({ data: sql`jsonb_set(${rows.data}, {"${columnName}"}, ${value})` })
         .where(eq(rows.id, rowId))
         .returning();
 
