@@ -15,10 +15,11 @@ import {
 } from "lucide-react";
 import Sidebar from "./components/sidebar";
 import Navbar from "./components/navbar";
+import { Table } from "./components/table";
 
 export default function Base({ params }: { params: { baseId: number } }) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-screen flex-col">
       <div className="w-full">
         <Navbar />
         <div className="flex h-[32px] bg-primary text-slate-600">
@@ -28,7 +29,7 @@ export default function Base({ params }: { params: { baseId: number } }) {
               <p className="mr-2 text-sm">Table 1</p>
               <ChevronDown size={15} />
             </div>
-            <div className="flex shrink-0 cursor-pointer items-center rounded-t-sm px-3 hover:bg-hover hover:text-black">
+            <div className="hover:bg-hover flex shrink-0 cursor-pointer items-center rounded-t-sm px-3 hover:text-black">
               <p className="mr-2 text-sm">Table 2</p>
             </div>
             <div className="flex cursor-pointer items-center hover:text-black">
@@ -98,8 +99,9 @@ export default function Base({ params }: { params: { baseId: number } }) {
       </div>
 
       {/* MAIN CONTENT AND SIDEBAR */}
-      <div className="flex h-full flex-1">
+      <div className="flex flex-1 overflow-auto">
         <Sidebar />
+        <Table />
       </div>
     </div>
   );
