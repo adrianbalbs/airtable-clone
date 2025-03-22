@@ -16,8 +16,7 @@ import {
 import Sidebar from "./components/sidebar";
 import Navbar from "./components/navbar";
 
-export default function Base({ params }: { params: { base: number } }) {
-  const { base } = params;
+export default function Base({ params }: { params: { baseId: number } }) {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="w-full">
