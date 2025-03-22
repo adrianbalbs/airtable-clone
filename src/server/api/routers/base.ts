@@ -56,12 +56,15 @@ export const baseRouter = createTRPCRouter({
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
         }
 
-        await tx.insert(columns).values([
-          { name: "Name", type: "text", table: table.id },
-          { name: "Notes", type: "text", table: table.id },
-          { name: "Assignee", type: "text", table: table.id },
-          { name: "Status", type: "text", table: table.id },
-        ]);
+        await tx
+          .insert(columns)
+          .values([
+            { name: "Name", type: "text", table: table.id },
+            { name: "Notes", type: "text", table: table.id },
+            { name: "Assignee", type: "text", table: table.id },
+            { name: "Status", type: "text", table: table.id },
+          ])
+          .returning();
 
         await tx
           .insert(rows)

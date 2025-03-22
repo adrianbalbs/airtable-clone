@@ -28,7 +28,10 @@ export const rows = createTable(
     table: serial("table")
       .references(() => tables.id, { onDelete: "cascade" })
       .notNull(),
-    data: jsonb("data").default({}).notNull(),
+    data: jsonb("data")
+      .$type<Record<string, number | string | null>>()
+      .default({})
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull(),
