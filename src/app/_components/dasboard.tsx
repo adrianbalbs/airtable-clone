@@ -193,16 +193,18 @@ export default function Dashboard() {
 
   const baseCreate = api.base.createBase.useMutation({
     async onMutate(newBase) {
-      const tempId = -Date.now();
-      router.push(`/${tempId}`);
+      const tempBaseId = -Date.now();
+      const tempTableId = -Date.now();
+      router.push(`/${tempBaseId}/${tempTableId}`);
       await utils.base.getAllBasesByUser.cancel();
       const prevData = utils.base.getAllBasesByUser.getData();
 
       utils.base.getAllBasesByUser.setData(undefined, (old) => [
         ...(old ?? []),
         {
-          id: tempId,
+          id: tempBaseId,
           name: newBase.name,
+          table: tempTableId,
           createdById: "temp",
           createdAt: new Date(),
           updatedAt: new Date(),
@@ -219,7 +221,7 @@ export default function Dashboard() {
       await utils.base.getAllBasesByUser.invalidate();
     },
     onSuccess: (createdBase) => {
-      router.replace(`/${createdBase?.id}`);
+      router.replace(`/${createdBase?.id}/${createdBase.table}`);
     },
   });
 
