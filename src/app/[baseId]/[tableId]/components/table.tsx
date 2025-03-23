@@ -87,6 +87,65 @@ export function Table({ tableData: initialData }: TableProps) {
     return data?.pages.flatMap((page) => page.rows) ?? [];
   }, [data]) as RowData[];
 
+  const addRow = api.table.addRow.useMutation({
+    onError: () => {
+      // On error, revert the optimistic update
+      utils.table.fetchRows.setInfiniteData(
+        { tableId: tableInfo.id },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page, pageIndex) => {
+              if (pageIndex !== 0) return page; // Only remove from first page
+              return {
+                ...page,
+                rows: page.rows.slice(1), // Remove the optimistically added row
+              };
+            }),
+          };
+        },
+      );
+    },
+  });
+
+  const handleAddRow = useCallback(() => {
+    // Create an empty row data object
+    const emptyRowData: Record<string, null> = {};
+    columns.forEach((col) => {
+      emptyRowData[col.name] = null;
+    });
+
+    // Create a temporary row for optimistic update
+    const optimisticRow: RowData = {
+      id: -Date.now(), // Temporary negative ID to avoid conflicts
+      table: tableInfo.id,
+      data: emptyRowData,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    // Optimistically update the UI
+    utils.table.fetchRows.setInfiniteData({ tableId: tableInfo.id }, (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        pages: old.pages.map((page, pageIndex) => {
+          if (pageIndex !== 0) return page; // Only add to first page
+          return {
+            ...page,
+            rows: [...page.rows, optimisticRow],
+          };
+        }),
+      };
+    });
+
+    // Send the create request to the server
+    addRow.mutate({
+      tableId: tableInfo.id,
+    });
+  }, [columns, tableInfo.id, utils.table.fetchRows, addRow]);
+
   const updateCell = api.table.updateCell.useMutation({
     onError: (error, { rowId, columnId, value: failedValue }) => {
       utils.table.fetchRows.setInfiniteData(
@@ -168,7 +227,7 @@ export function Table({ tableData: initialData }: TableProps) {
       columns.map((col) =>
         columnHelper.accessor(col.name, {
           header: () => (
-            <div className="flex h-[32px] items-center justify-between px-2 text-xs">
+            <div className="flex h-[32px] w-full items-center justify-between px-2 text-xs">
               <div className="flex items-center">
                 {col.type === "number" ? (
                   <Hash size={15} className="mr-2" />
@@ -270,7 +329,10 @@ export function Table({ tableData: initialData }: TableProps) {
             ))}
           </div>
         ))}
-        <div className="flex w-fit border-b border-slate-300 bg-white text-xs hover:bg-gray-100">
+        <div
+          className="flex w-fit border-b border-slate-300 bg-white text-xs hover:bg-gray-100"
+          onClick={handleAddRow}
+        >
           <div className="flex h-[32px] w-[230px] cursor-pointer items-center border-r border-slate-300 py-4 pl-3">
             <Plus size={15} />
           </div>
