@@ -9,7 +9,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useMemo, useState, useCallback, useRef, memo, useEffect } from "react";
+import { useMemo, useState, useCallback, memo, useEffect } from "react";
 
 type TableProps = {
   tableData: RouterOutputs["table"]["getTableById"];
@@ -36,12 +36,7 @@ type EditableCellProps = {
   value: string | number | null;
   rowIndex: number;
   column: ColumnDef;
-  onUpdate: (
-    columnId: number,
-    rowIndex: number,
-    value: string,
-    onComplete: () => void,
-  ) => void;
+  onUpdate: (columnId: number, rowIndex: number, value: string) => void;
 };
 
 const EditableCell = memo(function EditableCell({
@@ -51,28 +46,22 @@ const EditableCell = memo(function EditableCell({
   onUpdate,
 }: EditableCellProps) {
   const [inputValue, setInputValue] = useState(value?.toString() ?? "");
-  const [pendingValue, setPendingValue] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (document.activeElement !== inputRef.current && pendingValue === null) {
-      setInputValue(value?.toString() ?? "");
-    }
-  }, [value, pendingValue]);
+    setInputValue(value?.toString() ?? "");
+  }, [value]);
 
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     if (newValue !== value?.toString()) {
-      setPendingValue(newValue);
-      onUpdate(column.id, rowIndex, newValue, () => setPendingValue(null));
+      onUpdate(column.id, rowIndex, newValue);
     }
   };
 
   return (
     <input
-      ref={inputRef}
       className="h-full w-full cursor-text px-2 focus:outline-blue-500"
-      value={pendingValue ?? inputValue}
+      value={inputValue}
       type={column.type === "number" ? "number" : "text"}
       onChange={(e) => setInputValue(e.target.value)}
       onBlur={handleBlur}
@@ -99,7 +88,7 @@ export function Table({ tableData: initialData }: TableProps) {
   }, [data]) as RowData[];
 
   const updateCell = api.table.updateCell.useMutation({
-    onSuccess: (updatedRow, { rowId, columnId, value }) => {
+    onError: (error, { rowId, columnId, value: failedValue }) => {
       utils.table.fetchRows.setInfiniteData(
         { tableId: tableInfo.id },
         (old) => {
@@ -116,7 +105,7 @@ export function Table({ tableData: initialData }: TableProps) {
                   ...row,
                   data: {
                     ...row.data,
-                    [column.name]: value,
+                    [column.name]: failedValue,
                   },
                 };
               }),
@@ -128,37 +117,50 @@ export function Table({ tableData: initialData }: TableProps) {
   });
 
   const handleCellUpdate = useCallback(
-    (
-      columnId: number,
-      rowIndex: number,
-      value: string,
-      onComplete: () => void,
-    ) => {
+    (columnId: number, rowIndex: number, value: string) => {
       const column = columns.find((c) => c.id === columnId);
       const row = rows[rowIndex];
 
-      if (!row) return;
+      if (!row || !column) return;
 
       const typedValue =
         value === ""
           ? null
-          : column?.type === "number"
+          : column.type === "number"
             ? Number(value) || null
             : value;
 
-      updateCell.mutate(
-        {
-          tableId: tableInfo.id,
-          rowId: row.id,
-          columnId,
-          value: typedValue,
-        },
-        {
-          onSettled: onComplete,
+      utils.table.fetchRows.setInfiniteData(
+        { tableId: tableInfo.id },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              rows: page.rows.map((r) => {
+                if (r.id !== row.id) return r;
+                return {
+                  ...r,
+                  data: {
+                    ...r.data,
+                    [column.name]: typedValue,
+                  },
+                };
+              }),
+            })),
+          };
         },
       );
+
+      updateCell.mutate({
+        tableId: tableInfo.id,
+        rowId: row.id,
+        columnId,
+        value: typedValue,
+      });
     },
-    [columns, rows, updateCell, tableInfo.id],
+    [columns, rows, updateCell, tableInfo.id, utils.table.fetchRows],
   );
 
   const tableColumns = useMemo(
