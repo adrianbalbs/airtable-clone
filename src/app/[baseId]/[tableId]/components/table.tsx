@@ -9,6 +9,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
+import { useMemo, useState, useCallback, useRef, memo, useEffect } from "react";
 
 type TableProps = {
   tableData: RouterOutputs["table"]["getTableById"];
@@ -23,45 +24,67 @@ type ColumnDef = {
   type: "number" | "text";
 };
 
-type RowData = Record<string, string | number>;
+type RowData = {
+  id: number;
+  table: number;
+  data: Record<string, string | number | null>;
+  createdAt: Date;
+  updatedAt: Date;
+};
 
-export function Table({ tableData }: TableProps) {
-  const { table: tableInfo, columns } = tableData;
-  const columnHelper = createColumnHelper<RowData>();
+type EditableCellProps = {
+  value: string | number | null;
+  rowIndex: number;
+  column: ColumnDef;
+  onUpdate: (
+    columnId: number,
+    rowIndex: number,
+    value: string,
+    onComplete: () => void,
+  ) => void;
+};
 
-  const tableColumns = columns.map((col) =>
-    columnHelper.accessor(col.name, {
-      header: () => (
-        <div className="flex h-[32px] items-center justify-between px-2 text-xs">
-          <div className="flex items-center">
-            {col.type === "number" ? (
-              <Hash size={15} className="mr-2" />
-            ) : (
-              <Baseline size={15} className="mr-2" />
-            )}
-            <span>{col.name}</span>
-          </div>
-          <ChevronDown size={15} />
-        </div>
-      ),
-      cell: (info) => (
-        <input
-          className="h-full w-full cursor-text px-2 focus:outline-blue-500"
-          value={info.getValue()?.toString() ?? ""}
-          onChange={(e) => {
-            /* Handle change */
-          }}
-        />
-      ),
-      size: col.name === "Name" ? 230 : 180,
-    }),
+const EditableCell = memo(function EditableCell({
+  value,
+  rowIndex,
+  column,
+  onUpdate,
+}: EditableCellProps) {
+  const [inputValue, setInputValue] = useState(value?.toString() ?? "");
+  const [pendingValue, setPendingValue] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (document.activeElement !== inputRef.current && pendingValue === null) {
+      setInputValue(value?.toString() ?? "");
+    }
+  }, [value, pendingValue]);
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    if (newValue !== value?.toString()) {
+      setPendingValue(newValue);
+      onUpdate(column.id, rowIndex, newValue, () => setPendingValue(null));
+    }
+  };
+
+  return (
+    <input
+      ref={inputRef}
+      className="h-full w-full cursor-text px-2 focus:outline-blue-500"
+      value={pendingValue ?? inputValue}
+      type={column.type === "number" ? "number" : "text"}
+      onChange={(e) => setInputValue(e.target.value)}
+      onBlur={handleBlur}
+    />
   );
+});
 
-  const reactTable = useReactTable({
-    data: [], // We'll populate this with actual data later
-    columns: tableColumns,
-    getCoreRowModel: getCoreRowModel(),
-  });
+export function Table({ tableData: initialData }: TableProps) {
+  const { table: tableInfo, columns } = initialData;
+  const columnHelper =
+    createColumnHelper<Record<string, string | number | null>>();
+  const utils = api.useUtils();
 
   const { data, isPending, isError } = api.table.fetchRows.useInfiniteQuery(
     { tableId: tableInfo.id },
@@ -70,6 +93,119 @@ export function Table({ tableData }: TableProps) {
       enabled: !!tableInfo.id,
     },
   );
+
+  const rows = useMemo(() => {
+    return data?.pages.flatMap((page) => page.rows) ?? [];
+  }, [data]) as RowData[];
+
+  const updateCell = api.table.updateCell.useMutation({
+    onSuccess: (updatedRow, { rowId, columnId, value }) => {
+      utils.table.fetchRows.setInfiniteData(
+        { tableId: tableInfo.id },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              rows: page.rows.map((row) => {
+                if (row.id !== rowId) return row;
+                const column = columns.find((c) => c.id === columnId);
+                if (!column) return row;
+                return {
+                  ...row,
+                  data: {
+                    ...row.data,
+                    [column.name]: value,
+                  },
+                };
+              }),
+            })),
+          };
+        },
+      );
+    },
+  });
+
+  const handleCellUpdate = useCallback(
+    (
+      columnId: number,
+      rowIndex: number,
+      value: string,
+      onComplete: () => void,
+    ) => {
+      const column = columns.find((c) => c.id === columnId);
+      const row = rows[rowIndex];
+
+      if (!row) return;
+
+      const typedValue =
+        value === ""
+          ? null
+          : column?.type === "number"
+            ? Number(value) || null
+            : value;
+
+      updateCell.mutate(
+        {
+          tableId: tableInfo.id,
+          rowId: row.id,
+          columnId,
+          value: typedValue,
+        },
+        {
+          onSettled: onComplete,
+        },
+      );
+    },
+    [columns, rows, updateCell, tableInfo.id],
+  );
+
+  const tableColumns = useMemo(
+    () =>
+      columns.map((col) =>
+        columnHelper.accessor(col.name, {
+          header: () => (
+            <div className="flex h-[32px] items-center justify-between px-2 text-xs">
+              <div className="flex items-center">
+                {col.type === "number" ? (
+                  <Hash size={15} className="mr-2" />
+                ) : (
+                  <Baseline size={15} className="mr-2" />
+                )}
+                <span>{col.name}</span>
+              </div>
+              <ChevronDown size={15} />
+            </div>
+          ),
+          cell: (info) => {
+            const value = info.getValue();
+            const rowIndex = info.row.index;
+
+            return (
+              <EditableCell
+                value={value}
+                rowIndex={rowIndex}
+                column={col}
+                onUpdate={handleCellUpdate}
+              />
+            );
+          },
+          size: col.name === "Name" ? 230 : 180,
+        }),
+      ),
+    [columns, columnHelper, handleCellUpdate],
+  );
+
+  const tableData = useMemo(() => {
+    return rows.map((row) => row.data || {});
+  }, [rows]);
+
+  const reactTable = useReactTable({
+    data: tableData,
+    columns: tableColumns,
+    getCoreRowModel: getCoreRowModel(),
+  });
 
   if (isPending) {
     return <Loader />;
@@ -116,13 +252,13 @@ export function Table({ tableData }: TableProps) {
             key={row.id}
             className="flex w-fit border-b border-slate-300 bg-white text-xs hover:bg-gray-100"
           >
-            {row.getVisibleCells().map((cell) => (
+            {row.getVisibleCells().map((cell, cellIndex) => (
               <div
                 key={cell.id}
                 className="flex h-[32px] items-center border-r border-slate-300"
                 style={{ width: cell.column.getSize() }}
               >
-                {index === 0 && (
+                {cellIndex === 0 && (
                   <span className="flex h-full w-[70px] items-center p-4 text-gray-500">
                     {index + 1}
                   </span>
@@ -133,7 +269,7 @@ export function Table({ tableData }: TableProps) {
           </div>
         ))}
         <div className="flex w-fit border-b border-slate-300 bg-white text-xs hover:bg-gray-100">
-          <div className="flex h-[32px] w-[230px] cursor-pointer items-center border-r border-slate-300 p-4">
+          <div className="flex h-[32px] w-[230px] cursor-pointer items-center border-r border-slate-300 py-4 pl-3">
             <Plus size={15} />
           </div>
         </div>
