@@ -210,13 +210,12 @@ export const tableRouter = createTRPCRouter({
       const column = await ctx.db.query.columns.findFirst({
         where: and(eq(columns.table, tableId), eq(columns.id, columnId)),
       });
-
       if (!table || !row || !column) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
       if (
         column.type === "number" &&
-        (typeof value !== "number" || typeof value !== null)
+        (typeof value !== "number" || value === null)
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -225,7 +224,8 @@ export const tableRouter = createTRPCRouter({
       }
       if (
         column.type === "text" &&
-        (typeof value !== "string" || typeof value === null)
+        typeof value !== "string" &&
+        value !== null
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
@@ -235,7 +235,7 @@ export const tableRouter = createTRPCRouter({
       const [updatedRow] = await ctx.db
         .update(rows)
         .set({
-          data: sql`jsonb_set(${rows.data}, {"${column.name}"}, ${value})`,
+          data: sql`COALESCE(${rows.data}, '{}')::jsonb || ${JSON.stringify({ [column.name]: value })}::jsonb`,
         })
         .where(eq(rows.id, rowId))
         .returning();
