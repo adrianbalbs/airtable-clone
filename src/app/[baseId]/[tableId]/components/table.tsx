@@ -2,6 +2,7 @@
 
 import { Baseline, ChevronDown, Hash, Plus } from "lucide-react";
 import { api, RouterOutputs } from "~/trpc/react";
+import Loader from "./loader";
 
 type TableProps = {
   tableData: RouterOutputs["table"]["getTableById"];
@@ -11,13 +12,27 @@ export function Table({ tableData }: TableProps) {
   const { table, columns } = tableData;
   const rows = Array.from({ length: 200 });
 
-  const data = api.table.fetchRows.useInfiniteQuery(
+  const { data, isPending, isError } = api.table.fetchRows.useInfiniteQuery(
     { tableId: table.id },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
       enabled: !!table.id,
     },
   );
+
+  if (isPending) {
+    return <Loader />;
+  }
+
+  if (isError) {
+    return (
+      <div className="flex h-screen flex-1 items-center justify-center text-red-600">
+        <p>
+          Something went wrong while loading the table. Please try again later.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
