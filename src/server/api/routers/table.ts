@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, asc, count, eq, gt, sql } from "drizzle-orm";
 import { bases, columns, rows, tables } from "~/server/db/schema";
 import { TRPCError } from "@trpc/server";
 
@@ -72,10 +72,13 @@ export const tableRouter = createTRPCRouter({
         where: and(eq(tables.base, baseId), eq(tables.id, tableId)),
       });
 
+      const cols = await ctx.db.query.columns.findMany({
+        where: eq(columns.table, tableId)
+      })
       if (!table) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
-      return table;
+      return { table, columns: cols };
     }),
 
   addRow: protectedProcedure
@@ -107,21 +110,29 @@ export const tableRouter = createTRPCRouter({
   addColumn: protectedProcedure
     .input(
       z.object({
-        baseId: z.number(),
         tableId: z.number(),
         type: z.enum(["text", "number"]),
         name: z.string().min(6),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { baseId, tableId, type, name } = input;
+      const { tableId, type, name } = input;
 
       const table = await ctx.db.query.tables.findFirst({
-        where: and(eq(tables.base, baseId), eq(tables.id, tableId)),
+        where: eq(tables.id, tableId),
       });
 
       if (!table) {
         throw new TRPCError({ code: "NOT_FOUND" });
+      }
+      const existingCol = await ctx.db.query.columns.findFirst({
+        where: and(eq(columns.table, tableId), eq(columns.name, name)),
+      });
+      if (existingCol) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Please create a new unique column",
+        });
       }
 
       const [newCol] = await ctx.db
@@ -137,6 +148,45 @@ export const tableRouter = createTRPCRouter({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
       }
       return newCol;
+    }),
+
+  fetchRows: protectedProcedure
+    .input(
+      z.object({
+        tableId: z.number(),
+        cursor: z.number().optional(),
+        pageSize: z.number().min(1).max(100).default(20),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      const { tableId, cursor, pageSize } = input;
+      const table = await ctx.db.query.tables.findFirst({
+        where: eq(tables.id, tableId),
+      });
+      if (!table) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      const allRows = await ctx.db
+        .select()
+        .from(rows)
+        .where(
+          cursor
+            ? and(gt(rows.id, cursor), eq(rows.table, tableId))
+            : eq(rows.table, tableId),
+        )
+        .limit(pageSize + 1)
+        .orderBy(asc(rows.id));
+      let nextCursor: number | null = null;
+      if (allRows.length > pageSize) {
+        const lastRow = allRows.pop()
+        nextCursor = lastRow?.id ?? null
+      }
+      return {
+        rows: allRows,
+        nextCursor,
+        hasMore: nextCursor !== null
+      };
     }),
 
   updateCell: protectedProcedure
@@ -185,7 +235,9 @@ export const tableRouter = createTRPCRouter({
       }
       const [updatedRow] = await ctx.db
         .update(rows)
-        .set({ data: sql`jsonb_set(${rows.data}, {"${columnName}"}, ${value})` })
+        .set({
+          data: sql`jsonb_set(${rows.data}, {"${columnName}"}, ${value})`,
+        })
         .where(eq(rows.id, rowId))
         .returning();
 
