@@ -73,8 +73,8 @@ export const tableRouter = createTRPCRouter({
       });
 
       const cols = await ctx.db.query.columns.findMany({
-        where: eq(columns.table, tableId)
-      })
+        where: eq(columns.table, tableId),
+      });
       if (!table) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
@@ -82,12 +82,12 @@ export const tableRouter = createTRPCRouter({
     }),
 
   addRow: protectedProcedure
-    .input(z.object({ baseId: z.number(), tableId: z.number() }))
+    .input(z.object({ tableId: z.number() }))
     .mutation(async ({ ctx, input }) => {
-      const { baseId, tableId } = input;
+      const { tableId } = input;
 
       const table = await ctx.db.query.tables.findFirst({
-        where: and(eq(tables.base, baseId), eq(tables.id, tableId)),
+        where: eq(tables.id, tableId),
       });
 
       if (!table) {
@@ -179,37 +179,36 @@ export const tableRouter = createTRPCRouter({
         .orderBy(asc(rows.id));
       let nextCursor: number | null = null;
       if (allRows.length > pageSize) {
-        const lastRow = allRows.pop()
-        nextCursor = lastRow?.id ?? null
+        const lastRow = allRows.pop();
+        nextCursor = lastRow?.id ?? null;
       }
       return {
         rows: allRows,
         nextCursor,
-        hasMore: nextCursor !== null
+        hasMore: nextCursor !== null,
       };
     }),
 
   updateCell: protectedProcedure
     .input(
       z.object({
-        baseId: z.number(),
         tableId: z.number(),
         rowId: z.number(),
-        columnName: z.string(),
+        columnId: z.number(),
         value: z.union([z.string(), z.number(), z.null()]),
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      const { baseId, tableId, rowId, columnName, value } = input;
+      const { tableId, rowId, columnId, value } = input;
 
       const table = await ctx.db.query.tables.findFirst({
-        where: and(eq(tables.base, baseId), eq(tables.id, tableId)),
+        where: eq(tables.id, tableId),
       });
       const row = await ctx.db.query.rows.findFirst({
         where: and(eq(rows.id, rowId), eq(rows.table, tableId)),
       });
       const column = await ctx.db.query.columns.findFirst({
-        where: and(eq(columns.table, tableId), eq(columns.name, columnName)),
+        where: and(eq(columns.table, tableId), eq(columns.id, columnId)),
       });
 
       if (!table || !row || !column) {
@@ -221,7 +220,7 @@ export const tableRouter = createTRPCRouter({
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Expected a number for column "${columnName}", but got ${typeof value}`,
+          message: `Expected a number for column "${column.name}", but got ${typeof value}`,
         });
       }
       if (
@@ -230,13 +229,13 @@ export const tableRouter = createTRPCRouter({
       ) {
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: `Expected a string for column "${columnName}", but got ${typeof value}`,
+          message: `Expected a string for column "${column.name}", but got ${typeof value}`,
         });
       }
       const [updatedRow] = await ctx.db
         .update(rows)
         .set({
-          data: sql`jsonb_set(${rows.data}, {"${columnName}"}, ${value})`,
+          data: sql`jsonb_set(${rows.data}, {"${column.name}"}, ${value})`,
         })
         .where(eq(rows.id, rowId))
         .returning();
