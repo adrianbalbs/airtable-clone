@@ -1,29 +1,23 @@
 "use client";
 
 import { Baseline, ChevronDown, Hash, Plus } from "lucide-react";
+import { api, RouterOutputs } from "~/trpc/react";
 
-type TestTable = {
-  name: string;
-  notes: string;
-  age: number;
-  status: string;
+type TableProps = {
+  tableData: RouterOutputs["table"]["getTableById"];
 };
-export function Table() {
-  const data: TestTable[] = [
-    {
-      name: "Tanner",
-      notes: "test",
-      age: 33,
-      status: "Married",
-    },
-    {
-      name: "Kevin",
-      notes: "more notes",
-      age: 33,
-      status: "Single",
-    },
-  ];
+
+export function Table({ tableData }: TableProps) {
+  const { table, columns } = tableData;
   const rows = Array.from({ length: 200 });
+
+  const data = api.table.fetchRows.useInfiniteQuery(
+    { tableId: table.id },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+      enabled: !!table.id,
+    },
+  );
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
