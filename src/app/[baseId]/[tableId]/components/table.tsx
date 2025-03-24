@@ -40,15 +40,16 @@ export function Table({ tableData: initialData }: TableProps) {
     createColumnHelper<Record<string, string | number | null>>();
   const utils = api.useUtils();
 
-  const { data, isPending, isError } = api.table.fetchRows.useInfiniteQuery(
-    { tableId: tableInfo.id, pageSize: 50 },
-    {
-      getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-      enabled: !!tableInfo.id,
-      staleTime: 0,
-      refetchOnWindowFocus: false,
-    },
-  );
+  const { data, isPending, isError, fetchNextPage, hasNextPage } =
+    api.table.fetchRows.useInfiniteQuery(
+      { tableId: tableInfo.id, pageSize: 50 },
+      {
+        getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+        enabled: !!tableInfo.id,
+        staleTime: 0,
+        refetchOnWindowFocus: false,
+      },
+    );
 
   const rows = useMemo(() => {
     return data?.pages.flatMap((page) => page.rows) ?? [];
@@ -176,6 +177,22 @@ export function Table({ tableData: initialData }: TableProps) {
     getCoreRowModel: getCoreRowModel(),
   });
 
+  // Add scroll handler
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+      // If we're near the bottom (within 100px) and have more pages, fetch next page
+      if (
+        scrollHeight - scrollTop - clientHeight < 100 &&
+        hasNextPage &&
+        !isPending
+      ) {
+        void fetchNextPage();
+      }
+    },
+    [fetchNextPage, hasNextPage, isPending],
+  );
+
   if (isPending) {
     return <Loader />;
   }
@@ -215,7 +232,7 @@ export function Table({ tableData: initialData }: TableProps) {
           </div>
         ))}
       </div>
-      <div className="flex-1 overflow-auto bg-gray-50">
+      <div className="flex-1 overflow-auto bg-gray-50" onScroll={handleScroll}>
         {reactTable.getRowModel().rows.map((row, index) => (
           <div
             key={row.id}
@@ -245,6 +262,11 @@ export function Table({ tableData: initialData }: TableProps) {
             <Plus size={15} />
           </div>
         </div>
+        {isPending && (
+          <div className="flex w-full items-center justify-center py-4">
+            <Loader />
+          </div>
+        )}
       </div>
       <div className="flex border-t border-slate-300 text-xs">
         <p className="p-2">{reactTable.getRowModel().rows.length} records</p>
