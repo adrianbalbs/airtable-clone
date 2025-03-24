@@ -140,7 +140,7 @@ export const EditableCell = memo(function EditableCell({
       updateTimeoutRef.current = setTimeout(() => {
         sendUpdate(newValue);
         updateTimeoutRef.current = undefined;
-      }, 500);
+      }, 300);
     },
     [columnType, sendUpdate],
   );
