@@ -175,7 +175,7 @@ export const tableRouter = createTRPCRouter({
       z.object({
         tableId: z.number(),
         type: z.enum(["text", "number"]),
-        name: z.string().min(6),
+        name: z.string().min(1),
       }),
     )
     .mutation(async ({ ctx, input }) => {

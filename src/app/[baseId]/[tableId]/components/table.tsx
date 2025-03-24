@@ -15,9 +15,15 @@ import {
 import { useMemo, useCallback, useRef, memo } from "react";
 import { useCellNavigation } from "../hooks/use-cell-navigation";
 import React from "react";
+import AddColumnDropDownButton from "./add-column-dropdown-button";
 
 type TableProps = {
   tableData: RouterOutputs["table"]["getTableById"];
+  baseId: number;
+  rows: RowData[];
+  hasNextPage: boolean;
+  fetchNextPage: () => Promise<unknown>;
+  isLoadingMore: boolean;
 };
 
 type RowData = {
@@ -81,7 +87,14 @@ const Row = memo(function Row({
   );
 });
 
-export function Table({ tableData: initialData }: TableProps) {
+export function Table({
+  tableData: initialData,
+  baseId,
+  rows,
+  hasNextPage,
+  fetchNextPage,
+  isLoadingMore,
+}: TableProps) {
   const { table: tableInfo, columns } = initialData;
   const columnHelper =
     createColumnHelper<Record<string, string | number | null>>();
@@ -89,31 +102,25 @@ export function Table({ tableData: initialData }: TableProps) {
 
   const cellUpdatesRef = useRef<Record<string, unknown>>({});
 
-  const { data, isPending, isError, fetchNextPage, hasNextPage } =
-    api.table.fetchRows.useInfiniteQuery(
-      { tableId: tableInfo.id, pageSize: 50 },
-      {
-        getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
-        enabled: !!tableInfo.id,
-        staleTime: 0,
-        refetchOnWindowFocus: false,
-      },
-    );
-
-  const rows = useMemo(() => {
-    return data?.pages.flatMap((page) => page.rows) ?? [];
-  }, [data]) as RowData[];
+  const handleNavigate = useCellNavigation(rows, columns);
 
   const storeCellUpdate = useCallback(
     (rowId: number, columnId: number, value: unknown) => {
+      const column = columns.find((col) => col.id === columnId);
+
+      if (!column) return;
+
+      if (column.type === "number" && value === "") {
+        value = null;
+      }
+
       const key = `${rowId}-${columnId}`;
       cellUpdatesRef.current[key] = value;
     },
-    [],
+    [columns],
   );
 
   const applyCellUpdates = useCallback(() => {
-    // We need to apply the cell updates before adding the new row because of re-rendering
     utils.table.fetchRows.setInfiniteData(
       { tableId: tableInfo.id, pageSize: 50 },
       (old) => {
@@ -149,8 +156,6 @@ export function Table({ tableData: initialData }: TableProps) {
       },
     );
   }, [utils.table.fetchRows, tableInfo.id, columns]);
-
-  const handleNavigate = useCellNavigation(rows, columns);
 
   const addRow = api.table.addRow.useMutation({
     onMutate: async () => {
@@ -327,12 +332,12 @@ export function Table({ tableData: initialData }: TableProps) {
       if (
         scrollHeight - scrollTop - clientHeight < 100 &&
         hasNextPage &&
-        !isPending
+        !isLoadingMore
       ) {
         void fetchNextPage();
       }
     },
-    [fetchNextPage, hasNextPage, isPending],
+    [fetchNextPage, hasNextPage, isLoadingMore],
   );
 
   const parentRef = useRef<HTMLDivElement>(null);
@@ -344,83 +349,76 @@ export function Table({ tableData: initialData }: TableProps) {
     initialRect: { width: 0, height: 0 },
   });
 
-  if (isPending) {
+  if (isLoadingMore) {
     return <Loader />;
-  }
-
-  if (isError) {
-    return (
-      <div className="flex h-screen flex-1 items-center justify-center text-red-600">
-        <p>
-          Something went wrong while loading the table. Please try again later.
-        </p>
-      </div>
-    );
   }
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
-      <div className="flex border-b border-slate-300">
-        {reactTable.getHeaderGroups().map((headerGroup) => (
-          <div key={headerGroup.id} className="flex">
-            {headerGroup.headers.map((header) => (
-              <div
-                key={header.id}
-                className="flex h-[32px] items-center justify-between border-r border-slate-300 bg-gray-100"
-                style={{ width: header.getSize() }}
-              >
-                {header.isPlaceholder
-                  ? null
-                  : flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-              </div>
-            ))}
-            <div className="flex h-[32px] w-[92px] cursor-pointer items-center justify-center border-r border-slate-300 bg-gray-100 px-2 text-xs">
-              <Plus size={15} className="mr-2" />
-            </div>
-          </div>
-        ))}
-      </div>
       <div
         ref={parentRef}
-        className="flex-1 overflow-auto bg-gray-50"
+        className="flex-1 overflow-auto"
         onScroll={handleScroll}
       >
-        <div
-          style={{
-            height: `${rowVirtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
-          }}
-        >
-          {rowVirtualizer.getVirtualItems().map((virtualRow) => {
-            const row = reactTable.getRowModel().rows[virtualRow.index];
-            if (!row) return null;
-            return (
-              <Row
-                key={`row-${row.id}`}
-                row={row}
-                virtualRow={virtualRow}
-                columns={columns}
-              />
-            );
-          })}
-        </div>
-        <div
-          className="flex w-fit border-b border-slate-300 bg-white text-xs hover:bg-gray-100"
-          onClick={handleAddRow}
-        >
-          <div className="flex h-[32px] w-[230px] cursor-pointer items-center border-r border-slate-300 py-4 pl-4">
-            <Plus size={15} />
+        <div className="w-fit">
+          <div className="sticky top-0 z-10 border-b border-slate-300 bg-white">
+            {reactTable.getHeaderGroups().map((headerGroup) => (
+              <div key={headerGroup.id} className="flex">
+                {headerGroup.headers.map((header) => (
+                  <div
+                    key={header.id}
+                    className="flex h-[32px] items-center justify-between border-r border-slate-300 bg-gray-100"
+                    style={{ width: header.getSize() }}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </div>
+                ))}
+                <AddColumnDropDownButton
+                  tableId={tableInfo.id}
+                  baseId={baseId}
+                />
+              </div>
+            ))}
           </div>
-        </div>
-        {isPending && (
-          <div className="flex w-full items-center justify-center py-4">
-            <Loader />
+          <div
+            style={{
+              height: `${rowVirtualizer.getTotalSize()}px`,
+              width: "fit-content",
+              position: "relative",
+            }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow) => {
+              const row = reactTable.getRowModel().rows[virtualRow.index];
+              if (!row) return null;
+              return (
+                <Row
+                  key={`row-${row.id}`}
+                  row={row}
+                  virtualRow={virtualRow}
+                  columns={columns}
+                />
+              );
+            })}
           </div>
-        )}
+          <div
+            className="flex w-fit border-b border-slate-300 bg-white text-xs hover:bg-gray-100"
+            onClick={handleAddRow}
+          >
+            <div className="flex h-[32px] w-[230px] cursor-pointer items-center border-r border-slate-300 py-4 pl-4">
+              <Plus size={15} />
+            </div>
+          </div>
+          {isLoadingMore && (
+            <div className="flex w-full items-center justify-center py-4">
+              <Loader />
+            </div>
+          )}
+        </div>
       </div>
       <div className="flex border-t border-slate-300 text-xs">
         <p className="mr-2 py-2 pl-4">

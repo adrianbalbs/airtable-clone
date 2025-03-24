@@ -73,21 +73,36 @@ export const EditableCell = memo(function EditableCell({
     (newValue: string) => {
       if (newValue === latestValueRef.current) return;
 
-      const typedValue =
-        newValue === ""
-          ? null
-          : columnType === "number"
-            ? Number(newValue) || null
-            : newValue;
+      if (columnType === "number") {
+        if (newValue === "" || newValue === "-") {
+          setLocalValue("");
+          latestValueRef.current = "";
+          return;
+        }
+        const numValue = Number(newValue);
+        if (isNaN(numValue) || !isFinite(numValue)) {
+          setLocalValue(latestValueRef.current);
+          return;
+        }
+        void updateCell.mutateAsync({
+          tableId,
+          rowId,
+          columnId,
+          value: numValue,
+        });
+        latestValueRef.current = newValue;
+        valueRef.current = numValue;
+        return;
+      }
 
       void updateCell.mutateAsync({
         tableId,
         rowId,
         columnId,
-        value: typedValue,
+        value: newValue === "" ? null : newValue,
       });
       latestValueRef.current = newValue;
-      valueRef.current = typedValue;
+      valueRef.current = newValue === "" ? null : newValue;
     },
     [columnId, columnType, rowId, tableId, updateCell],
   );
@@ -103,15 +118,26 @@ export const EditableCell = memo(function EditableCell({
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
-      if (
-        columnType === "number" &&
-        newValue !== "" &&
-        !/^\d*\.?\d*$/.test(newValue)
-      ) {
-        return;
+
+      if (columnType === "number") {
+        if (newValue === "") {
+          isDirtyRef.current = true;
+          setLocalValue(newValue);
+        } else if (newValue === "-") {
+          isDirtyRef.current = true;
+          setLocalValue(newValue);
+        } else if (/^-?\d*\.?\d*$/.test(newValue)) {
+          if ((newValue.match(/\./g) ?? []).length <= 1) {
+            isDirtyRef.current = true;
+            setLocalValue(newValue);
+          }
+        } else {
+          return;
+        }
+      } else {
+        isDirtyRef.current = true;
+        setLocalValue(newValue);
       }
-      isDirtyRef.current = true;
-      setLocalValue(newValue);
 
       if (updateTimeoutRef.current) {
         clearTimeout(updateTimeoutRef.current);
@@ -192,7 +218,7 @@ export const EditableCell = memo(function EditableCell({
         value={localValue}
         onChange={handleChange}
         onKeyDown={handleKeyDown}
-        type={columnType === "number" ? "number" : "text"}
+        type="text"
         className="h-full w-full cursor-text px-2 focus:outline-blue-500"
         data-cell-id={`${columnId}-${rowId}`}
       />
