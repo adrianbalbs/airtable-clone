@@ -24,6 +24,7 @@ export default function AddColumnDropDownButton({
 }) {
   const [value, setValue] = useState("");
   const [columnType, setColumnType] = useState<"text" | "number">("text");
+  const [error, setError] = useState<string | null>(null);
   const utils = api.useUtils();
 
   const { data: tableData } = api.table.getTableById.useQuery({
@@ -33,11 +34,9 @@ export default function AddColumnDropDownButton({
 
   const addColumn = api.table.addColumn.useMutation({
     onMutate: async ({ name, type }) => {
-      // Cancel any outgoing refetches
       await utils.table.getTableById.cancel({ tableId, baseId });
       await utils.table.fetchRows.cancel({ tableId });
 
-      // Snapshot the previous values
       const previousTableData = utils.table.getTableById.getData({
         tableId,
         baseId,
@@ -57,7 +56,6 @@ export default function AddColumnDropDownButton({
         updatedAt: new Date(),
       };
 
-      // Update table data optimistically
       if (tableData) {
         utils.table.getTableById.setData(
           { tableId, baseId },
@@ -68,7 +66,6 @@ export default function AddColumnDropDownButton({
         );
       }
 
-      // Update rows data optimistically
       utils.table.fetchRows.setInfiniteData(
         { tableId, pageSize: 50 },
         (old) => {
@@ -92,7 +89,6 @@ export default function AddColumnDropDownButton({
       return { previousTableData, previousRowsData, optimisticId };
     },
     onError: (_, __, context) => {
-      // If the mutation fails, use the context returned from onMutate to roll back
       if (context?.previousTableData) {
         utils.table.getTableById.setData(
           { tableId, baseId },
@@ -108,7 +104,6 @@ export default function AddColumnDropDownButton({
     },
     onSuccess: (newColumn, _, context) => {
       if (context?.optimisticId && tableData) {
-        // Update table data with the real column
         utils.table.getTableById.setData(
           { tableId, baseId },
           {
@@ -119,7 +114,6 @@ export default function AddColumnDropDownButton({
           },
         );
 
-        // Update rows data with the real column
         utils.table.fetchRows.setInfiniteData(
           { tableId, pageSize: 50 },
           (old) => {
@@ -146,6 +140,12 @@ export default function AddColumnDropDownButton({
   const handleAddColumn = () => {
     if (!value.trim()) return;
 
+    if (tableData?.columns.some((col) => col.name === value.trim())) {
+      setError("A column with this name already exists");
+      return;
+    }
+
+    setError(null);
     addColumn.mutate({
       tableId,
       name: value.trim(),
@@ -161,6 +161,11 @@ export default function AddColumnDropDownButton({
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setValue(e.target.value);
+    setError(null);
+  };
+
   return (
     <Menu>
       {({ close }) => (
@@ -172,15 +177,18 @@ export default function AddColumnDropDownButton({
             anchor="bottom start"
             className="h-xl z-20 mt-1 w-[400px] rounded-xl border border-slate-300 bg-white p-4 shadow-lg"
           >
-            <Input
-              type="text"
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onClick={(e) => e.stopPropagation()}
-              placeholder="Field name"
-              className="mb-4 w-full rounded-lg border border-slate-300 p-2 text-xs shadow-md"
-            />
+            <div className="mb-4">
+              <Input
+                type="text"
+                value={value}
+                onChange={handleInputChange}
+                onKeyDown={handleKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Field name"
+                className={`w-full rounded-lg border ${error ? "border-red-500" : "border-slate-300"} p-2 text-xs shadow-md`}
+              />
+              {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+            </div>
             <div className="relative">
               <Listbox value={columnType} onChange={setColumnType}>
                 <div className="relative">
@@ -220,7 +228,11 @@ export default function AddColumnDropDownButton({
             </div>
             <div className="flex items-center justify-end">
               <button
-                onClick={() => close()}
+                onClick={() => {
+                  close();
+                  setError(null);
+                  setValue("");
+                }}
                 className="mr-2 rounded-lg px-4 py-2 text-xs text-gray-500 hover:bg-gray-100"
               >
                 Cancel
@@ -229,12 +241,14 @@ export default function AddColumnDropDownButton({
                 onClick={() => {
                   if (value.trim()) {
                     handleAddColumn();
-                    setValue("");
-                    close();
+                    if (!error) {
+                      setValue("");
+                      close();
+                    }
                   }
                 }}
-                className="rounded-lg bg-blue-500 px-4 py-2 text-xs text-white shadow-md hover:bg-blue-600"
-                disabled={!value.trim()}
+                className="rounded-lg bg-blue-500 px-4 py-2 text-xs text-white shadow-md hover:bg-blue-600 disabled:opacity-50"
+                disabled={!value.trim() || !!error}
               >
                 Create field
               </button>
