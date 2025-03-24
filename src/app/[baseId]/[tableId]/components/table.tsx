@@ -177,11 +177,9 @@ export function Table({ tableData: initialData }: TableProps) {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  // Add scroll handler
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-      // If we're near the bottom (within 100px) and have more pages, fetch next page
       if (
         scrollHeight - scrollTop - clientHeight < 100 &&
         hasNextPage &&
