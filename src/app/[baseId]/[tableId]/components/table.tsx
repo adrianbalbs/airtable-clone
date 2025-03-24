@@ -345,7 +345,7 @@ export function Table({
     count: reactTable.getRowModel().rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 32,
-    overscan: 5,
+    overscan: 50,
     initialRect: { width: 0, height: 0 },
   });
 
