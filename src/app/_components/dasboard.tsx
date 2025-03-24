@@ -188,40 +188,11 @@ function CreateBaseDialog({
 export default function Dashboard() {
   const [isOpen, setIsOpen] = useState(false);
   const { data = [], isPending } = api.base.getAllBasesByUser.useQuery();
-  const utils = api.useUtils();
   const router = useRouter();
 
   const baseCreate = api.base.createBase.useMutation({
-    async onMutate(newBase) {
-      const tempBaseId = -Date.now();
-      const tempTableId = -Date.now();
-      router.push(`/${tempBaseId}/${tempTableId}`);
-      await utils.base.getAllBasesByUser.cancel();
-      const prevData = utils.base.getAllBasesByUser.getData();
-
-      utils.base.getAllBasesByUser.setData(undefined, (old) => [
-        ...(old ?? []),
-        {
-          id: tempBaseId,
-          name: newBase.name,
-          table: tempTableId,
-          createdById: "temp",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ]);
-      return { prevData };
-    },
-    onError(err, _newBase, ctx) {
-      console.error("Base creation failed:", err);
-      utils.base.getAllBasesByUser.setData(undefined, ctx?.prevData);
-      router.back();
-    },
-    onSettled: async () => {
-      await utils.base.getAllBasesByUser.invalidate();
-    },
     onSuccess: (createdBase) => {
-      router.replace(`/${createdBase?.id}/${createdBase.table}`);
+      router.push(`/${createdBase?.id}/${createdBase.table}`);
     },
   });
 
