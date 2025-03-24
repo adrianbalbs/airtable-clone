@@ -349,10 +349,6 @@ export function Table({
     initialRect: { width: 0, height: 0 },
   });
 
-  if (isLoadingMore) {
-    return <Loader />;
-  }
-
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
       <div

@@ -20,29 +20,27 @@ export const EditableCell = memo(function EditableCell({
   onNavigate,
   onCellUpdate,
 }: EditableCellProps) {
-  const valueRef = useRef(value);
   const [localValue, setLocalValue] = useState(value?.toString() ?? "");
-  const isDirtyRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const latestValueRef = useRef(value?.toString() ?? "");
+  const isDirtyRef = useRef(false);
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
   const utils = api.useUtils();
 
   useEffect(() => {
-    valueRef.current = value;
+    if (document.activeElement !== inputRef.current && !isDirtyRef.current) {
+      setLocalValue(value?.toString() ?? "");
+    }
   }, [value]);
 
   const updateCell = api.table.updateCell.useMutation({
     onMutate: async ({ value: newValue }) => {
       await utils.table.fetchRows.cancel();
 
-      const previousValue = valueRef.current;
-
       if (onCellUpdate) {
         onCellUpdate(rowId, columnId, newValue);
       }
 
-      return { previousValue };
+      return { previousValue: value };
     },
     onError: (err, variables, context) => {
       if (context?.previousValue !== undefined) {
@@ -71,17 +69,16 @@ export const EditableCell = memo(function EditableCell({
 
   const sendUpdate = useCallback(
     (newValue: string) => {
-      if (newValue === latestValueRef.current) return;
+      if (newValue === value?.toString()) return;
 
       if (columnType === "number") {
         if (newValue === "" || newValue === "-") {
           setLocalValue("");
-          latestValueRef.current = "";
           return;
         }
         const numValue = Number(newValue);
         if (isNaN(numValue) || !isFinite(numValue)) {
-          setLocalValue(latestValueRef.current);
+          setLocalValue(value?.toString() ?? "");
           return;
         }
         void updateCell.mutateAsync({
@@ -90,8 +87,6 @@ export const EditableCell = memo(function EditableCell({
           columnId,
           value: numValue,
         });
-        latestValueRef.current = newValue;
-        valueRef.current = numValue;
         return;
       }
 
@@ -101,19 +96,9 @@ export const EditableCell = memo(function EditableCell({
         columnId,
         value: newValue === "" ? null : newValue,
       });
-      latestValueRef.current = newValue;
-      valueRef.current = newValue === "" ? null : newValue;
     },
-    [columnId, columnType, rowId, tableId, updateCell],
+    [columnId, columnType, rowId, tableId, updateCell, value],
   );
-
-  useEffect(() => {
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-    };
-  }, []);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,13 +135,6 @@ export const EditableCell = memo(function EditableCell({
     },
     [columnType, sendUpdate],
   );
-
-  useEffect(() => {
-    if (document.activeElement !== inputRef.current && !isDirtyRef.current) {
-      setLocalValue(value?.toString() ?? "");
-      latestValueRef.current = value?.toString() ?? "";
-    }
-  }, [value]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -210,6 +188,14 @@ export const EditableCell = memo(function EditableCell({
     },
     [onNavigate, localValue, sendUpdate],
   );
+
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex h-full w-full items-center border-r border-gray-300 text-xs">
