@@ -8,6 +8,7 @@ type EditableCellProps = {
   columnType: "text" | "number";
   tableId: number;
   onNavigate?: (direction: "right" | "left" | "up" | "down") => void;
+  onCellUpdate?: (rowId: number, columnId: number, value: unknown) => void;
 };
 
 export const EditableCell = memo(function EditableCell({
@@ -17,7 +18,9 @@ export const EditableCell = memo(function EditableCell({
   columnType,
   tableId,
   onNavigate,
+  onCellUpdate,
 }: EditableCellProps) {
+  const valueRef = useRef(value);
   const [localValue, setLocalValue] = useState(value?.toString() ?? "");
   const isDirtyRef = useRef(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -25,9 +28,20 @@ export const EditableCell = memo(function EditableCell({
   const updateTimeoutRef = useRef<NodeJS.Timeout>();
   const utils = api.useUtils();
 
+  useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
   const updateCell = api.table.updateCell.useMutation({
     onMutate: async ({ value: newValue }) => {
       await utils.table.fetchRows.cancel();
+
+      const previousValue = valueRef.current;
+
+      if (onCellUpdate) {
+        onCellUpdate(rowId, columnId, newValue);
+      }
+
       utils.table.fetchRows.setInfiniteData({ tableId }, (old) => {
         if (!old) return old;
         return {
@@ -47,6 +61,31 @@ export const EditableCell = memo(function EditableCell({
           })),
         };
       });
+
+      return { previousValue };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousValue !== undefined) {
+        utils.table.fetchRows.setInfiniteData({ tableId }, (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              rows: page.rows.map((row) => {
+                if (row.id !== rowId) return row;
+                return {
+                  ...row,
+                  data: {
+                    ...row.data,
+                    [columnId]: context.previousValue,
+                  },
+                };
+              }),
+            })),
+          };
+        });
+      }
     },
   });
 
@@ -68,6 +107,7 @@ export const EditableCell = memo(function EditableCell({
         value: typedValue,
       });
       latestValueRef.current = newValue;
+      valueRef.current = typedValue;
     },
     [columnId, columnType, rowId, tableId, updateCell],
   );

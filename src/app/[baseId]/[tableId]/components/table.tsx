@@ -53,7 +53,7 @@ const Row = memo(function Row({
 
       return (
         <div
-          key={cell.id}
+          key={`${row.id}-${column.id}`}
           className="flex h-[32px] items-center border-b border-slate-300"
           style={{ width: cell.column.getSize() }}
         >
@@ -87,6 +87,8 @@ export function Table({ tableData: initialData }: TableProps) {
     createColumnHelper<Record<string, string | number | null>>();
   const utils = api.useUtils();
 
+  const cellUpdatesRef = useRef<Record<string, unknown>>({});
+
   const { data, isPending, isError, fetchNextPage, hasNextPage } =
     api.table.fetchRows.useInfiniteQuery(
       { tableId: tableInfo.id, pageSize: 50 },
@@ -102,19 +104,69 @@ export function Table({ tableData: initialData }: TableProps) {
     return data?.pages.flatMap((page) => page.rows) ?? [];
   }, [data]) as RowData[];
 
+  const storeCellUpdate = useCallback(
+    (rowId: number, columnId: number, value: unknown) => {
+      const key = `${rowId}-${columnId}`;
+      cellUpdatesRef.current[key] = value;
+    },
+    [],
+  );
+
+  const applyCellUpdates = useCallback(() => {
+    // We need to apply the cell updates before adding the new row because of re-rendering
+    utils.table.fetchRows.setInfiniteData(
+      { tableId: tableInfo.id, pageSize: 50 },
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            rows: page.rows.map((row) => {
+              const updatedData = { ...row.data };
+              let hasUpdates = false;
+
+              columns.forEach((col) => {
+                const key = `${row.id}-${col.id}`;
+                if (key in cellUpdatesRef.current) {
+                  updatedData[col.name] = cellUpdatesRef.current[key] as
+                    | string
+                    | number
+                    | null;
+                  hasUpdates = true;
+                }
+              });
+              if (hasUpdates) {
+                return {
+                  ...row,
+                  data: updatedData,
+                };
+              }
+              return row;
+            }),
+          })),
+        };
+      },
+    );
+  }, [utils.table.fetchRows, tableInfo.id, columns]);
+
   const handleNavigate = useCellNavigation(rows, columns);
 
   const addRow = api.table.addRow.useMutation({
     onMutate: async () => {
-      console.log("onMutate");
+      applyCellUpdates();
+
       await utils.table.fetchRows.cancel();
 
       const emptyRowData: Record<string, null> = {};
       columns.forEach((col) => {
         emptyRowData[col.name] = null;
       });
+
+      const optimisticId = -Date.now();
+
       const optimisticRow: RowData = {
-        id: -Date.now(),
+        id: optimisticId,
         table: tableInfo.id,
         data: emptyRowData,
         createdAt: new Date(),
@@ -141,7 +193,7 @@ export function Table({ tableData: initialData }: TableProps) {
         },
       );
 
-      return { optimisticRow };
+      return { optimisticRow, optimisticId };
     },
     onError: (err, _, context) => {
       if (context?.optimisticRow) {
@@ -162,8 +214,27 @@ export function Table({ tableData: initialData }: TableProps) {
         );
       }
     },
-    onSettled: () => {
-      void utils.table.fetchRows.invalidate({ tableId: tableInfo.id });
+    onSuccess: (newRow, _, context) => {
+      if (context?.optimisticId) {
+        utils.table.fetchRows.setInfiniteData(
+          { tableId: tableInfo.id, pageSize: 50 },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                rows: page.rows.map((row) => {
+                  if (row.id === context.optimisticId) {
+                    return newRow;
+                  }
+                  return row;
+                }),
+              })),
+            };
+          },
+        );
+      }
     },
   });
 
@@ -193,6 +264,7 @@ export function Table({ tableData: initialData }: TableProps) {
     () =>
       columns.map((col) =>
         columnHelper.accessor(col.name, {
+          id: col.name,
           header: () => (
             <div className="flex h-[32px] w-full items-center justify-between px-2 text-xs">
               <div className="flex items-center">
@@ -215,19 +287,28 @@ export function Table({ tableData: initialData }: TableProps) {
 
             return (
               <EditableCell
+                key={`cell-${row.id}-${col.id}`}
                 value={value}
                 rowId={row.id}
                 columnId={col.id}
                 columnType={col.type}
                 tableId={tableInfo.id}
                 onNavigate={handleNavigate}
+                onCellUpdate={storeCellUpdate}
               />
             );
           },
           size: col.name === "Name" ? 230 : 180,
         }),
       ),
-    [columns, columnHelper, rows, tableInfo.id, handleNavigate],
+    [
+      columns,
+      columnHelper,
+      rows,
+      tableInfo.id,
+      handleNavigate,
+      storeCellUpdate,
+    ],
   );
 
   const tableData = useMemo(() => {
@@ -319,7 +400,7 @@ export function Table({ tableData: initialData }: TableProps) {
             if (!row) return null;
             return (
               <Row
-                key={row.id}
+                key={`row-${row.id}`}
                 row={row}
                 virtualRow={virtualRow}
                 columns={columns}
