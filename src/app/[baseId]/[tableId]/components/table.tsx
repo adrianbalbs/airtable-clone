@@ -3,16 +3,18 @@
 import { Baseline, ChevronDown, Hash, Plus } from "lucide-react";
 import { api, type RouterOutputs } from "~/trpc/react";
 import Loader from "./loader";
-import { useVirtualizer } from "@tanstack/react-virtual";
+import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
 import { EditableCell } from "./editable-cell";
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
+  type Row as TableRow,
 } from "@tanstack/react-table";
 import { useMemo, useCallback, useRef } from "react";
 import { useCellNavigation } from "../hooks/use-cell-navigation";
+import React from "react";
 
 type TableProps = {
   tableData: RouterOutputs["table"]["getTableById"];
@@ -25,6 +27,59 @@ type RowData = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+type ColumnDef = {
+  id: number;
+  table: number;
+  name: string;
+  createdAt: Date;
+  updatedAt: Date;
+  type: "number" | "text";
+};
+
+const Row = React.memo(function Row({
+  row,
+  virtualRow,
+  columns,
+}: {
+  row: TableRow<Record<string, string | number | null>>;
+  virtualRow: VirtualItem;
+  columns: ColumnDef[];
+}) {
+  const cells = useMemo(() => {
+    return row.getVisibleCells().map((cell, cellIndex) => {
+      const column = columns.find((col) => col.name === cell.column.id);
+      if (!column) return null;
+
+      return (
+        <div
+          key={cell.id}
+          className="flex h-[32px] items-center border-b border-slate-300"
+          style={{ width: cell.column.getSize() }}
+        >
+          {cellIndex === 0 && (
+            <span className="flex h-full w-[70px] items-center p-4 text-gray-500">
+              {virtualRow.index + 1}
+            </span>
+          )}
+          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+        </div>
+      );
+    });
+  }, [row, columns, virtualRow.index]);
+
+  return (
+    <div
+      className="absolute left-0 top-0 flex w-fit bg-white text-xs hover:bg-gray-100"
+      style={{
+        height: `${virtualRow.size}px`,
+        transform: `translateY(${virtualRow.start}px)`,
+      }}
+    >
+      {cells}
+    </div>
+  );
+});
 
 export function Table({ tableData: initialData }: TableProps) {
   const { table: tableInfo, columns } = initialData;
@@ -204,7 +259,8 @@ export function Table({ tableData: initialData }: TableProps) {
     count: reactTable.getRowModel().rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 32,
-    overscan: 50,
+    overscan: 5,
+    initialRect: { width: 0, height: 0 },
   });
 
   if (isPending) {
@@ -262,29 +318,12 @@ export function Table({ tableData: initialData }: TableProps) {
             const row = reactTable.getRowModel().rows[virtualRow.index];
             if (!row) return null;
             return (
-              <div
+              <Row
                 key={row.id}
-                className="absolute left-0 top-0 flex w-fit bg-white text-xs hover:bg-gray-100"
-                style={{
-                  height: `${virtualRow.size}px`,
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                {row.getVisibleCells().map((cell, cellIndex) => (
-                  <div
-                    key={cell.id}
-                    className="flex h-[32px] items-center border-b border-slate-300"
-                    style={{ width: cell.column.getSize() }}
-                  >
-                    {cellIndex === 0 && (
-                      <span className="flex h-full w-[70px] items-center p-4 text-gray-500">
-                        {virtualRow.index + 1}
-                      </span>
-                    )}
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </div>
-                ))}
-              </div>
+                row={row}
+                virtualRow={virtualRow}
+                columns={columns}
+              />
             );
           })}
         </div>
