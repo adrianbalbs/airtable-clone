@@ -42,26 +42,6 @@ export const EditableCell = memo(function EditableCell({
         onCellUpdate(rowId, columnId, newValue);
       }
 
-      utils.table.fetchRows.setInfiniteData({ tableId }, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            rows: page.rows.map((row) => {
-              if (row.id !== rowId) return row;
-              return {
-                ...row,
-                data: {
-                  ...row.data,
-                  [columnId]: newValue,
-                },
-              };
-            }),
-          })),
-        };
-      });
-
       return { previousValue };
     },
     onError: (err, variables, context) => {
