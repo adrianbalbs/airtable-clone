@@ -12,7 +12,7 @@ import {
   useReactTable,
   type Row as TableRow,
 } from "@tanstack/react-table";
-import { useMemo, useCallback, useRef } from "react";
+import { useMemo, useCallback, useRef, memo } from "react";
 import { useCellNavigation } from "../hooks/use-cell-navigation";
 import React from "react";
 
@@ -37,7 +37,7 @@ type ColumnDef = {
   type: "number" | "text";
 };
 
-const Row = React.memo(function Row({
+const Row = memo(function Row({
   row,
   virtualRow,
   columns,
