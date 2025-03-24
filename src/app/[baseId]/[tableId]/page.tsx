@@ -8,7 +8,7 @@ import { Table } from "./components/table";
 export default async function Base({
   params,
 }: {
-  params: { baseId: string; tableId: string };
+  params: Promise<{ baseId: string; tableId: string }>;
 }) {
   const session = await auth();
   if (!session?.user) {
