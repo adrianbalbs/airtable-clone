@@ -118,6 +118,22 @@ export function Table({ tableData: initialData }: TableProps) {
     });
   }, [tableInfo.id, addRow]);
 
+  const generateFakeRows = api.table.generateFakeRows.useMutation({
+    onMutate: async () => {
+      await utils.table.fetchRows.cancel();
+    },
+    onSettled: () => {
+      void utils.table.fetchRows.invalidate({ tableId: tableInfo.id });
+    },
+  });
+
+  const handleGenerateFakeRows = useCallback(() => {
+    generateFakeRows.mutate({
+      tableId: tableInfo.id,
+      numRows: 100000,
+    });
+  }, [tableInfo.id, generateFakeRows]);
+
   const tableColumns = useMemo(
     () =>
       columns.map((col) =>
@@ -276,7 +292,7 @@ export function Table({ tableData: initialData }: TableProps) {
           className="flex w-fit border-b border-slate-300 bg-white text-xs hover:bg-gray-100"
           onClick={handleAddRow}
         >
-          <div className="flex h-[32px] w-[230px] cursor-pointer items-center border-r border-slate-300 py-4 pl-3">
+          <div className="flex h-[32px] w-[230px] cursor-pointer items-center border-r border-slate-300 py-4 pl-4">
             <Plus size={15} />
           </div>
         </div>
@@ -287,7 +303,23 @@ export function Table({ tableData: initialData }: TableProps) {
         )}
       </div>
       <div className="flex border-t border-slate-300 text-xs">
-        <p className="p-2">{reactTable.getRowModel().rows.length} records</p>
+        <p className="mr-2 py-2 pl-4">
+          {reactTable.getRowModel().rows.length} records
+        </p>
+        <button
+          className="flex cursor-pointer items-center p-2 text-black hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={handleGenerateFakeRows}
+          disabled={generateFakeRows.isPending}
+        >
+          {generateFakeRows.isPending ? (
+            <p>Generating...</p>
+          ) : (
+            <>
+              <Plus size={15} className="mr-2" />
+              <span>Generate Fake Rows</span>
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

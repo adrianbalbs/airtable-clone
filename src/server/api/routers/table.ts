@@ -3,6 +3,7 @@ import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { and, asc, count, eq, gt, sql } from "drizzle-orm";
 import { bases, columns, rows, tables } from "~/server/db/schema";
 import { TRPCError } from "@trpc/server";
+import { faker } from "@faker-js/faker";
 
 export const tableRouter = createTRPCRouter({
   createTable: protectedProcedure
@@ -106,7 +107,69 @@ export const tableRouter = createTRPCRouter({
       }
       return newRow;
     }),
+  generateFakeRows: protectedProcedure
+    .input(
+      z.object({
+        tableId: z.number(),
+        numRows: z.number().min(100).max(1000000),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { tableId, numRows } = input;
 
+      const table = await ctx.db.query.tables.findFirst({
+        where: eq(tables.id, tableId),
+      });
+
+      if (!table) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      const cols = await ctx.db.query.columns.findMany({
+        where: eq(columns.table, tableId),
+      });
+
+      if (!cols) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      const BATCH_SIZE = 1000;
+      const batches = Math.ceil(numRows / BATCH_SIZE);
+      const allRows: (typeof rows.$inferSelect)[] = [];
+
+      await ctx.db.transaction(async (tx) => {
+        for (let i = 0; i < batches; i++) {
+          const currentBatchSize = Math.min(
+            BATCH_SIZE,
+            numRows - i * BATCH_SIZE,
+          );
+          const fakeRows = Array.from({ length: currentBatchSize }, () => {
+            const rowData: Record<string, string | number | null> = {};
+
+            cols.forEach((col) => {
+              if (col.type === "text") {
+                rowData[col.name] = faker.lorem.sentence();
+              } else if (col.type === "number") {
+                rowData[col.name] = faker.number.int({ min: 0, max: 100000 });
+              }
+            });
+
+            return {
+              table: tableId,
+              data: rowData,
+            };
+          });
+
+          const [newRows] = await tx.insert(rows).values(fakeRows).returning();
+          if (!newRows) {
+            throw new TRPCError({ code: "INTERNAL_SERVER_ERROR" });
+          }
+          allRows.push(newRows);
+        }
+      });
+
+      return allRows;
+    }),
   addColumn: protectedProcedure
     .input(
       z.object({
