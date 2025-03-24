@@ -3,13 +3,15 @@
 import { Baseline, ChevronDown, Hash, Plus } from "lucide-react";
 import { api, type RouterOutputs } from "~/trpc/react";
 import Loader from "./loader";
+import { EditableCell } from "./editable-cell";
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useMemo, useState, useCallback, memo, useEffect } from "react";
+import { useMemo, useCallback } from "react";
+import { useCellNavigation } from "../hooks/use-cell-navigation";
 
 type TableProps = {
   tableData: RouterOutputs["table"]["getTableById"];
@@ -32,43 +34,6 @@ type RowData = {
   updatedAt: Date;
 };
 
-type EditableCellProps = {
-  value: string | number | null;
-  rowIndex: number;
-  column: ColumnDef;
-  onUpdate: (columnId: number, rowIndex: number, value: string) => void;
-};
-
-const EditableCell = memo(function EditableCell({
-  value,
-  rowIndex,
-  column,
-  onUpdate,
-}: EditableCellProps) {
-  const [inputValue, setInputValue] = useState(value?.toString() ?? "");
-
-  useEffect(() => {
-    setInputValue(value?.toString() ?? "");
-  }, [value]);
-
-  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    if (newValue !== value?.toString()) {
-      onUpdate(column.id, rowIndex, newValue);
-    }
-  };
-
-  return (
-    <input
-      className="h-full w-full cursor-text px-2 focus:outline-blue-500"
-      value={inputValue}
-      type={column.type === "number" ? "number" : "text"}
-      onChange={(e) => setInputValue(e.target.value)}
-      onBlur={handleBlur}
-    />
-  );
-});
-
 export function Table({ tableData: initialData }: TableProps) {
   const { table: tableInfo, columns } = initialData;
   const columnHelper =
@@ -76,10 +41,12 @@ export function Table({ tableData: initialData }: TableProps) {
   const utils = api.useUtils();
 
   const { data, isPending, isError } = api.table.fetchRows.useInfiniteQuery(
-    { tableId: tableInfo.id },
+    { tableId: tableInfo.id, pageSize: 50 },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
       enabled: !!tableInfo.id,
+      staleTime: 0,
+      refetchOnWindowFocus: false,
     },
   );
 
@@ -87,140 +54,76 @@ export function Table({ tableData: initialData }: TableProps) {
     return data?.pages.flatMap((page) => page.rows) ?? [];
   }, [data]) as RowData[];
 
+  const handleNavigate = useCellNavigation(rows, columns);
+
   const addRow = api.table.addRow.useMutation({
-    onError: () => {
-      // On error, revert the optimistic update
+    onMutate: async () => {
+      console.log("onMutate");
+      await utils.table.fetchRows.cancel();
+
+      const emptyRowData: Record<string, null> = {};
+      columns.forEach((col) => {
+        emptyRowData[col.name] = null;
+      });
+      const optimisticRow: RowData = {
+        id: -Date.now(),
+        table: tableInfo.id,
+        data: emptyRowData,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
       utils.table.fetchRows.setInfiniteData(
-        { tableId: tableInfo.id },
+        { tableId: tableInfo.id, pageSize: 50 },
         (old) => {
           if (!old) return old;
+          const lastPageIndex = old.pages.length - 1;
           return {
             ...old,
             pages: old.pages.map((page, pageIndex) => {
-              if (pageIndex !== 0) return page; // Only remove from first page
-              return {
-                ...page,
-                rows: page.rows.slice(1), // Remove the optimistically added row
-              };
+              if (pageIndex === lastPageIndex) {
+                return {
+                  ...page,
+                  rows: [...page.rows, optimisticRow],
+                };
+              }
+              return page;
             }),
           };
         },
       );
+
+      return { optimisticRow };
+    },
+    onError: (err, _, context) => {
+      if (context?.optimisticRow) {
+        utils.table.fetchRows.setInfiniteData(
+          { tableId: tableInfo.id },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                rows: page.rows.filter(
+                  (row) => row.id !== context.optimisticRow.id,
+                ),
+              })),
+            };
+          },
+        );
+      }
+    },
+    onSettled: () => {
+      void utils.table.fetchRows.invalidate({ tableId: tableInfo.id });
     },
   });
 
   const handleAddRow = useCallback(() => {
-    // Create an empty row data object
-    const emptyRowData: Record<string, null> = {};
-    columns.forEach((col) => {
-      emptyRowData[col.name] = null;
-    });
-
-    // Create a temporary row for optimistic update
-    const optimisticRow: RowData = {
-      id: -Date.now(), // Temporary negative ID to avoid conflicts
-      table: tableInfo.id,
-      data: emptyRowData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    // Optimistically update the UI
-    utils.table.fetchRows.setInfiniteData({ tableId: tableInfo.id }, (old) => {
-      if (!old) return old;
-      return {
-        ...old,
-        pages: old.pages.map((page, pageIndex) => {
-          if (pageIndex !== 0) return page; // Only add to first page
-          return {
-            ...page,
-            rows: [...page.rows, optimisticRow],
-          };
-        }),
-      };
-    });
-
-    // Send the create request to the server
     addRow.mutate({
       tableId: tableInfo.id,
     });
-  }, [columns, tableInfo.id, utils.table.fetchRows, addRow]);
-
-  const updateCell = api.table.updateCell.useMutation({
-    onError: (error, { rowId, columnId, value: failedValue }) => {
-      utils.table.fetchRows.setInfiniteData(
-        { tableId: tableInfo.id },
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              rows: page.rows.map((row) => {
-                if (row.id !== rowId) return row;
-                const column = columns.find((c) => c.id === columnId);
-                if (!column) return row;
-                return {
-                  ...row,
-                  data: {
-                    ...row.data,
-                    [column.name]: failedValue,
-                  },
-                };
-              }),
-            })),
-          };
-        },
-      );
-    },
-  });
-
-  const handleCellUpdate = useCallback(
-    (columnId: number, rowIndex: number, value: string) => {
-      const column = columns.find((c) => c.id === columnId);
-      const row = rows[rowIndex];
-
-      if (!row || !column) return;
-
-      const typedValue =
-        value === ""
-          ? null
-          : column.type === "number"
-            ? Number(value) || null
-            : value;
-
-      utils.table.fetchRows.setInfiniteData(
-        { tableId: tableInfo.id },
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              rows: page.rows.map((r) => {
-                if (r.id !== row.id) return r;
-                return {
-                  ...r,
-                  data: {
-                    ...r.data,
-                    [column.name]: typedValue,
-                  },
-                };
-              }),
-            })),
-          };
-        },
-      );
-
-      updateCell.mutate({
-        tableId: tableInfo.id,
-        rowId: row.id,
-        columnId,
-        value: typedValue,
-      });
-    },
-    [columns, rows, updateCell, tableInfo.id, utils.table.fetchRows],
-  );
+  }, [tableInfo.id, addRow]);
 
   const tableColumns = useMemo(
     () =>
@@ -242,20 +145,25 @@ export function Table({ tableData: initialData }: TableProps) {
           cell: (info) => {
             const value = info.getValue();
             const rowIndex = info.row.index;
+            const row = rows[rowIndex];
+
+            if (!row) return null;
 
             return (
               <EditableCell
                 value={value}
-                rowIndex={rowIndex}
-                column={col}
-                onUpdate={handleCellUpdate}
+                rowId={row.id}
+                columnId={col.id}
+                columnType={col.type}
+                tableId={tableInfo.id}
+                onNavigate={handleNavigate}
               />
             );
           },
           size: col.name === "Name" ? 230 : 180,
         }),
       ),
-    [columns, columnHelper, handleCellUpdate],
+    [columns, columnHelper, rows, tableInfo.id, handleNavigate],
   );
 
   const tableData = useMemo(() => {
