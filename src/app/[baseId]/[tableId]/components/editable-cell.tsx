@@ -140,11 +140,6 @@ export const EditableCell = memo(function EditableCell({
     (e: React.KeyboardEvent<HTMLInputElement>) => {
       if (!onNavigate) return;
 
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-        updateTimeoutRef.current = undefined;
-      }
-
       if (
         e.key === "Tab" ||
         e.key === "ArrowUp" ||
@@ -156,10 +151,6 @@ export const EditableCell = memo(function EditableCell({
         e.preventDefault();
         e.stopPropagation();
 
-        if (isDirtyRef.current) {
-          sendUpdate(localValue);
-          isDirtyRef.current = false;
-        }
 
         let direction: "right" | "left" | "up" | "down";
         switch (e.key) {
@@ -186,7 +177,7 @@ export const EditableCell = memo(function EditableCell({
         onNavigate(direction);
       }
     },
-    [onNavigate, localValue, sendUpdate],
+    [onNavigate],
   );
 
   useEffect(() => {
