@@ -96,7 +96,7 @@ export function Table({ tableId }: TableProps) {
   });
 
   const rowsQuery = api.table.fetchRows.useInfiniteQuery(
-    { tableId, pageSize: 50 },
+    { tableId, pageSize: 100 },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       enabled: tableQuery.isSuccess,
@@ -134,7 +134,7 @@ export function Table({ tableId }: TableProps) {
   );
 
   const applyCellUpdates = useCallback(() => {
-    utils.table.fetchRows.setInfiniteData({ tableId, pageSize: 50 }, (old) => {
+    utils.table.fetchRows.setInfiniteData({ tableId, pageSize: 100 }, (old) => {
       if (!old) return old;
       return {
         ...old,
@@ -189,7 +189,7 @@ export function Table({ tableId }: TableProps) {
       };
 
       utils.table.fetchRows.setInfiniteData(
-        { tableId: tableId, pageSize: 50 },
+        { tableId, pageSize: 100 },
         (old) => {
           if (!old) return old;
           const lastPageIndex = old.pages.length - 1;
@@ -211,22 +211,25 @@ export function Table({ tableId }: TableProps) {
       return { optimisticRow, optimisticId };
     },
     onError: (err, _, context) => {
-      utils.table.fetchRows.setInfiniteData({ tableId, pageSize: 50 }, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            rows: page.rows.filter(
-              (row) => row.id !== context?.optimisticRow.id,
-            ),
-          })),
-        };
-      });
+      utils.table.fetchRows.setInfiniteData(
+        { tableId, pageSize: 100 },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              rows: page.rows.filter(
+                (row) => row.id !== context?.optimisticRow.id,
+              ),
+            })),
+          };
+        },
+      );
     },
     onSuccess: (newRow, _, context) => {
       utils.table.fetchRows.setInfiniteData(
-        { tableId: tableId, pageSize: 50 },
+        { tableId, pageSize: 100 },
         (old) => {
           if (!old) return old;
           return {
@@ -338,7 +341,7 @@ export function Table({ tableId }: TableProps) {
     count: reactTable.getRowModel().rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 32,
-    overscan: 50,
+    overscan: 100,
     initialRect: { width: 0, height: 0 },
   });
 

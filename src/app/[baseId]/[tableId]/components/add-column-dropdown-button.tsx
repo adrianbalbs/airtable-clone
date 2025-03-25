@@ -39,12 +39,12 @@ export default function AddColumnDropDownButton({
       });
       const previousRowsData = utils.table.fetchRows.getInfiniteData({
         tableId,
-        pageSize: 50,
+        pageSize: 100,
       });
 
-      const optimisticId = -Date.now();
-      const optimisticColumn: Column = {
-        id: optimisticId,
+      const tempId = -Date.now();
+      const tempCol: Column = {
+        id: tempId,
         table: tableId,
         name,
         type,
@@ -57,13 +57,13 @@ export default function AddColumnDropDownButton({
           { tableId },
           {
             ...tableData,
-            columns: [...tableData.columns, optimisticColumn],
+            columns: [...tableData.columns, tempCol],
           },
         );
       }
 
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 50 },
+        { tableId, pageSize: 100 },
         (old) => {
           if (!old) return old;
           return {
@@ -82,7 +82,7 @@ export default function AddColumnDropDownButton({
         },
       );
 
-      return { previousTableData, previousRowsData, optimisticId };
+      return { previousTableData, previousRowsData, tempId };
     },
     onError: (_, __, context) => {
       if (context?.previousTableData) {
@@ -93,25 +93,25 @@ export default function AddColumnDropDownButton({
       }
       if (context?.previousRowsData) {
         utils.table.fetchRows.setInfiniteData(
-          { tableId, pageSize: 50 },
+          { tableId, pageSize: 100 },
           context.previousRowsData,
         );
       }
     },
     onSuccess: (newColumn, _, context) => {
-      if (context?.optimisticId && tableData) {
+      if (context?.tempId && tableData) {
         utils.table.getTableById.setData(
           { tableId },
           {
             ...tableData,
             columns: tableData.columns.map((col) =>
-              col.id === context.optimisticId ? newColumn : col,
+              col.id === context.tempId ? newColumn : col,
             ),
           },
         );
 
         utils.table.fetchRows.setInfiniteData(
-          { tableId, pageSize: 50 },
+          { tableId, pageSize: 100 },
           (old) => {
             if (!old) return old;
             return {

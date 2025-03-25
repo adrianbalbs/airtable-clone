@@ -44,25 +44,28 @@ export const EditableCell = memo(function EditableCell({
     },
     onError: (err, variables, context) => {
       if (context?.previousValue !== undefined) {
-        utils.table.fetchRows.setInfiniteData({ tableId }, (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              rows: page.rows.map((row) => {
-                if (row.id !== rowId) return row;
-                return {
-                  ...row,
-                  data: {
-                    ...row.data,
-                    [columnId]: context.previousValue,
-                  },
-                };
-              }),
-            })),
-          };
-        });
+        utils.table.fetchRows.setInfiniteData(
+          { tableId, pageSize: 100 },
+          (old) => {
+            if (!old) return old;
+            return {
+              ...old,
+              pages: old.pages.map((page) => ({
+                ...page,
+                rows: page.rows.map((row) => {
+                  if (row.id !== rowId) return row;
+                  return {
+                    ...row,
+                    data: {
+                      ...row.data,
+                      [columnId]: context.previousValue,
+                    },
+                  };
+                }),
+              })),
+            };
+          },
+        );
       }
     },
   });

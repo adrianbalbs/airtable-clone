@@ -15,7 +15,7 @@ export default async function Base({
   await Promise.all([
     api.base.getBaseById.prefetch({ id: baseId }),
     api.table.getTableById.prefetch({ tableId }),
-    api.table.fetchRows.prefetchInfinite({ tableId, pageSize: 50 }),
+    api.table.fetchRows.prefetchInfinite({ tableId, pageSize: 100 }),
   ]);
 
   return (
