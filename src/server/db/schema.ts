@@ -92,9 +92,13 @@ export const tables = createTable("table", {
     .notNull(),
 });
 
-export const tablesRelations = relations(tables, ({ many }) => ({
+export const tablesRelations = relations(tables, ({ many, one }) => ({
   columns: many(columns),
   rows: many(rows),
+  base: one(bases, {
+    fields: [tables.base],
+    references: [bases.id],
+  }),
 }));
 
 export const bases = createTable(
