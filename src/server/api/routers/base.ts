@@ -21,13 +21,15 @@ export const baseRouter = createTRPCRouter({
       .orderBy(desc(bases.id), desc(bases.updatedAt));
   }),
 
-  // TODO: Update this to return a list of table ids for navigating to tables
   getBaseById: protectedProcedure
     .input(z.object({ id: z.number() }))
     .query(async ({ ctx, input }) => {
       const { id } = input;
       const base = await ctx.db.query.bases.findFirst({
         where: eq(bases.id, id),
+        with: {
+          tables: true,
+        },
       });
       if (!base) {
         throw new TRPCError({ code: "NOT_FOUND" });

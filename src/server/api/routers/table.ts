@@ -65,12 +65,12 @@ export const tableRouter = createTRPCRouter({
     }),
 
   getTableById: protectedProcedure
-    .input(z.object({ baseId: z.number(), tableId: z.number() }))
+    .input(z.object({ tableId: z.number() }))
     .query(async ({ ctx, input }) => {
-      const { baseId, tableId } = input;
+      const { tableId } = input;
 
       const table = await ctx.db.query.tables.findFirst({
-        where: and(eq(tables.base, baseId), eq(tables.id, tableId)),
+        where: eq(tables.id, tableId),
       });
 
       const cols = await ctx.db.query.columns.findMany({
