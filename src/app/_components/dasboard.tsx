@@ -14,7 +14,7 @@ import {
 
 import BaseGrid from "./base-grid";
 import { api } from "~/trpc/react";
-import { type Dispatch, type SetStateAction, useState } from "react";
+import { type Dispatch, type SetStateAction, useState, useMemo } from "react";
 import { Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
 import Image from "next/image";
 import dayjs from "dayjs";
@@ -211,21 +211,32 @@ export default function Dashboard() {
   const today = dayjs();
   const sevenDaysAgo = today.subtract(7, "day");
 
-  const todayBases = data.filter((base) => dayjs(base.updatedAt).isToday());
-
-  const last7DaysBases = data.filter((base) =>
-    dayjs(base.updatedAt).isBetween(
-      sevenDaysAgo,
-      today.subtract(1, "day"),
-      "day",
-      "[]",
-    ),
+  const todayBases = useMemo(
+    () => data.filter((base) => dayjs(base.updatedAt).isToday()),
+    [data],
   );
 
-  const olderBases = data.filter(
-    (base) =>
-      !dayjs(base.updatedAt).isToday() &&
-      !dayjs(base.updatedAt).isBetween(sevenDaysAgo, today, "day", "[]"),
+  const last7DaysBases = useMemo(
+    () =>
+      data.filter((base) =>
+        dayjs(base.updatedAt).isBetween(
+          sevenDaysAgo,
+          today.subtract(1, "day"),
+          "day",
+          "[]",
+        ),
+      ),
+    [data, sevenDaysAgo, today],
+  );
+
+  const olderBases = useMemo(
+    () =>
+      data.filter(
+        (base) =>
+          !dayjs(base.updatedAt).isToday() &&
+          !dayjs(base.updatedAt).isBetween(sevenDaysAgo, today, "day", "[]"),
+      ),
+    [data, sevenDaysAgo, today],
   );
 
   return (
