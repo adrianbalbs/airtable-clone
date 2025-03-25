@@ -219,10 +219,11 @@ export const tableRouter = createTRPCRouter({
         tableId: z.number(),
         cursor: z.number().optional(),
         pageSize: z.number().min(1).max(100).default(20),
+        search: z.string().optional(),
       }),
     )
     .query(async ({ ctx, input }) => {
-      const { tableId, cursor, pageSize } = input;
+      const { tableId, cursor, pageSize, search } = input;
       const table = await ctx.db.query.tables.findFirst({
         where: eq(tables.id, tableId),
       });
@@ -230,21 +231,27 @@ export const tableRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
+      const whereConditions = [eq(rows.table, tableId)];
+      if (cursor) {
+        whereConditions.push(gt(rows.id, cursor));
+      }
+      if (search) {
+        whereConditions.push(sql`${rows.data}::text ILIKE ${`%${search}%`}`);
+      }
+
       const allRows = await ctx.db
         .select()
         .from(rows)
-        .where(
-          cursor
-            ? and(gt(rows.id, cursor), eq(rows.table, tableId))
-            : eq(rows.table, tableId),
-        )
+        .where(and(...whereConditions))
         .limit(pageSize + 1)
         .orderBy(asc(rows.id));
+
       let nextCursor: number | null = null;
       if (allRows.length > pageSize) {
         const lastRow = allRows.pop();
         nextCursor = lastRow?.id ?? null;
       }
+
       return {
         rows: allRows,
         nextCursor,
