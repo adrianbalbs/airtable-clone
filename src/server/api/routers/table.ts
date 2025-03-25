@@ -236,7 +236,13 @@ export const tableRouter = createTRPCRouter({
         whereConditions.push(gt(rows.id, cursor));
       }
       if (search) {
-        whereConditions.push(sql`${rows.data}::text ILIKE ${`%${search}%`}`);
+        whereConditions.push(
+          sql`EXISTS (
+            SELECT 1
+            FROM jsonb_each_text(${rows.data}) AS t
+            WHERE t.value ILIKE ${`%${search}%`}
+          )`,
+        );
       }
 
       const allRows = await ctx.db
