@@ -1,7 +1,7 @@
 "use client";
 
 import { Baseline, ChevronDown, Hash, Plus } from "lucide-react";
-import { api, type RouterOutputs } from "~/trpc/react";
+import { api } from "~/trpc/react";
 import Loader from "./loader";
 import { useVirtualizer, type VirtualItem } from "@tanstack/react-virtual";
 import { EditableCell } from "./editable-cell";
@@ -16,14 +16,11 @@ import { useMemo, useCallback, useRef, memo } from "react";
 import { useCellNavigation } from "../hooks/use-cell-navigation";
 import React from "react";
 import AddColumnDropDownButton from "./add-column-dropdown-button";
+import { notFound } from "next/navigation";
 
 type TableProps = {
-  tableData: RouterOutputs["table"]["getTableById"];
   baseId: number;
-  rows: RowData[];
-  hasNextPage: boolean;
-  fetchNextPage: () => Promise<unknown>;
-  isLoadingMore: boolean;
+  tableId: number;
 };
 
 type RowData = {
@@ -87,27 +84,43 @@ const Row = memo(function Row({
   );
 });
 
-export function Table({
-  tableData: initialData,
-  baseId,
-  rows,
-  hasNextPage,
-  fetchNextPage,
-  isLoadingMore,
-}: TableProps) {
-  const { table: tableInfo, columns } = initialData;
+export function Table({ tableId }: TableProps) {
+  const utils = api.useUtils();
+  const cellUpdatesRef = useRef<Record<string, unknown>>({});
+  const parentRef = useRef<HTMLDivElement>(null);
   const columnHelper =
     createColumnHelper<Record<string, string | number | null>>();
-  const utils = api.useUtils();
 
-  const cellUpdatesRef = useRef<Record<string, unknown>>({});
+  const tableQuery = api.table.getTableById.useQuery({
+    tableId,
+  });
+
+  const rowsQuery = api.table.fetchRows.useInfiniteQuery(
+    { tableId, pageSize: 50 },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      enabled: tableQuery.isSuccess,
+    },
+  );
+
+  const rows = useMemo(
+    () =>
+      rowsQuery.isSuccess
+        ? rowsQuery.data.pages.flatMap((page) => page.rows)
+        : [],
+    [rowsQuery.data, rowsQuery.isSuccess],
+  );
+
+  const columns = useMemo(
+    () => (tableQuery.isSuccess ? tableQuery.data.columns : []),
+    [tableQuery.data, tableQuery.isSuccess],
+  );
 
   const handleNavigate = useCellNavigation(rows, columns);
 
   const storeCellUpdate = useCallback(
     (rowId: number, columnId: number, value: unknown) => {
       const column = columns.find((col) => col.id === columnId);
-
       if (!column) return;
 
       if (column.type === "number" && value === "") {
@@ -121,41 +134,38 @@ export function Table({
   );
 
   const applyCellUpdates = useCallback(() => {
-    utils.table.fetchRows.setInfiniteData(
-      { tableId: tableInfo.id, pageSize: 50 },
-      (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          pages: old.pages.map((page) => ({
-            ...page,
-            rows: page.rows.map((row) => {
-              const updatedData = { ...row.data };
-              let hasUpdates = false;
+    utils.table.fetchRows.setInfiniteData({ tableId, pageSize: 50 }, (old) => {
+      if (!old) return old;
+      return {
+        ...old,
+        pages: old.pages.map((page) => ({
+          ...page,
+          rows: page.rows.map((row) => {
+            const updatedData = { ...row.data };
+            let hasUpdates = false;
 
-              columns.forEach((col) => {
-                const key = `${row.id}-${col.id}`;
-                if (key in cellUpdatesRef.current) {
-                  updatedData[col.name] = cellUpdatesRef.current[key] as
-                    | string
-                    | number
-                    | null;
-                  hasUpdates = true;
-                }
-              });
-              if (hasUpdates) {
-                return {
-                  ...row,
-                  data: updatedData,
-                };
+            columns.forEach((col) => {
+              const key = `${row.id}-${col.id}`;
+              if (key in cellUpdatesRef.current) {
+                updatedData[col.name] = cellUpdatesRef.current[key] as
+                  | string
+                  | number
+                  | null;
+                hasUpdates = true;
               }
-              return row;
-            }),
-          })),
-        };
-      },
-    );
-  }, [utils.table.fetchRows, tableInfo.id, columns]);
+            });
+            if (hasUpdates) {
+              return {
+                ...row,
+                data: updatedData,
+              };
+            }
+            return row;
+          }),
+        })),
+      };
+    });
+  }, [utils.table.fetchRows, tableId, columns]);
 
   const addRow = api.table.addRow.useMutation({
     onMutate: async () => {
@@ -172,14 +182,14 @@ export function Table({
 
       const optimisticRow: RowData = {
         id: optimisticId,
-        table: tableInfo.id,
+        table: tableId,
         data: emptyRowData,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
       utils.table.fetchRows.setInfiniteData(
-        { tableId: tableInfo.id, pageSize: 50 },
+        { tableId: tableId, pageSize: 50 },
         (old) => {
           if (!old) return old;
           const lastPageIndex = old.pages.length - 1;
@@ -201,69 +211,62 @@ export function Table({
       return { optimisticRow, optimisticId };
     },
     onError: (err, _, context) => {
-      if (context?.optimisticRow) {
-        utils.table.fetchRows.setInfiniteData(
-          { tableId: tableInfo.id },
-          (old) => {
-            if (!old) return old;
-            return {
-              ...old,
-              pages: old.pages.map((page) => ({
-                ...page,
-                rows: page.rows.filter(
-                  (row) => row.id !== context.optimisticRow.id,
-                ),
-              })),
-            };
-          },
-        );
-      }
+      utils.table.fetchRows.setInfiniteData({ tableId, pageSize: 50 }, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            rows: page.rows.filter(
+              (row) => row.id !== context?.optimisticRow.id,
+            ),
+          })),
+        };
+      });
     },
     onSuccess: (newRow, _, context) => {
-      if (context?.optimisticId) {
-        utils.table.fetchRows.setInfiniteData(
-          { tableId: tableInfo.id, pageSize: 50 },
-          (old) => {
-            if (!old) return old;
-            return {
-              ...old,
-              pages: old.pages.map((page) => ({
-                ...page,
-                rows: page.rows.map((row) => {
-                  if (row.id === context.optimisticId) {
-                    return newRow;
-                  }
-                  return row;
-                }),
-              })),
-            };
-          },
-        );
-      }
+      utils.table.fetchRows.setInfiniteData(
+        { tableId: tableId, pageSize: 50 },
+        (old) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              rows: page.rows.map((row) => {
+                if (row.id === context?.optimisticId) {
+                  return newRow;
+                }
+                return row;
+              }),
+            })),
+          };
+        },
+      );
     },
   });
 
   const handleAddRow = useCallback(() => {
     addRow.mutate({
-      tableId: tableInfo.id,
+      tableId,
     });
-  }, [tableInfo.id, addRow]);
+  }, [tableId, addRow]);
 
   const generateFakeRows = api.table.generateFakeRows.useMutation({
     onMutate: async () => {
       await utils.table.fetchRows.cancel();
     },
     onSettled: () => {
-      void utils.table.fetchRows.invalidate({ tableId: tableInfo.id });
+      void utils.table.fetchRows.invalidate({ tableId });
     },
   });
 
   const handleGenerateFakeRows = useCallback(() => {
     generateFakeRows.mutate({
-      tableId: tableInfo.id,
+      tableId,
       numRows: 100000,
     });
-  }, [tableInfo.id, generateFakeRows]);
+  }, [tableId, generateFakeRows]);
 
   const tableColumns = useMemo(
     () =>
@@ -297,7 +300,7 @@ export function Table({
                 rowId={row.id}
                 columnId={col.id}
                 columnType={col.type}
-                tableId={tableInfo.id}
+                tableId={tableId}
                 onNavigate={handleNavigate}
                 onCellUpdate={storeCellUpdate}
               />
@@ -306,22 +309,13 @@ export function Table({
           size: col.name === "Name" ? 230 : 180,
         }),
       ),
-    [
-      columns,
-      columnHelper,
-      rows,
-      tableInfo.id,
-      handleNavigate,
-      storeCellUpdate,
-    ],
+    [columns, columnHelper, rows, tableId, handleNavigate, storeCellUpdate],
   );
 
-  const tableData = useMemo(() => {
-    return rows.map((row) => row.data || {});
-  }, [rows]);
+  const rowData = useMemo(() => rows.map((row) => row.data || {}), [rows]);
 
   const reactTable = useReactTable({
-    data: tableData,
+    data: rowData,
     columns: tableColumns,
     getCoreRowModel: getCoreRowModel(),
   });
@@ -331,16 +325,15 @@ export function Table({
       const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
       if (
         scrollHeight - scrollTop - clientHeight < 100 &&
-        hasNextPage &&
-        !isLoadingMore
+        rowsQuery.hasNextPage &&
+        !rowsQuery.isFetchingNextPage
       ) {
-        void fetchNextPage();
+        void rowsQuery.fetchNextPage();
       }
     },
-    [fetchNextPage, hasNextPage, isLoadingMore],
+    [rowsQuery],
   );
 
-  const parentRef = useRef<HTMLDivElement>(null);
   const rowVirtualizer = useVirtualizer({
     count: reactTable.getRowModel().rows.length,
     getScrollElement: () => parentRef.current,
@@ -348,6 +341,18 @@ export function Table({
     overscan: 50,
     initialRect: { width: 0, height: 0 },
   });
+
+  if (tableQuery.isError) {
+    notFound();
+  }
+
+  if (tableQuery.isPending) {
+    return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader />
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden">
@@ -374,10 +379,7 @@ export function Table({
                         )}
                   </div>
                 ))}
-                <AddColumnDropDownButton
-                  tableId={tableInfo.id}
-                  baseId={baseId}
-                />
+                <AddColumnDropDownButton tableId={tableId} />
               </div>
             ))}
           </div>
@@ -409,7 +411,7 @@ export function Table({
               <Plus size={15} />
             </div>
           </div>
-          {isLoadingMore && (
+          {rowsQuery.isFetchingNextPage && (
             <div className="flex w-full items-center justify-center py-4">
               <Loader />
             </div>

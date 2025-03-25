@@ -17,10 +17,8 @@ type Column = TableData["columns"][number];
 
 export default function AddColumnDropDownButton({
   tableId,
-  baseId,
 }: {
   tableId: number;
-  baseId: number;
 }) {
   const [value, setValue] = useState("");
   const [columnType, setColumnType] = useState<"text" | "number">("text");
@@ -29,17 +27,15 @@ export default function AddColumnDropDownButton({
 
   const { data: tableData } = api.table.getTableById.useQuery({
     tableId,
-    baseId,
   });
 
   const addColumn = api.table.addColumn.useMutation({
     onMutate: async ({ name, type }) => {
-      await utils.table.getTableById.cancel({ tableId, baseId });
+      await utils.table.getTableById.cancel({ tableId });
       await utils.table.fetchRows.cancel({ tableId });
 
       const previousTableData = utils.table.getTableById.getData({
         tableId,
-        baseId,
       });
       const previousRowsData = utils.table.fetchRows.getInfiniteData({
         tableId,
@@ -58,7 +54,7 @@ export default function AddColumnDropDownButton({
 
       if (tableData) {
         utils.table.getTableById.setData(
-          { tableId, baseId },
+          { tableId },
           {
             ...tableData,
             columns: [...tableData.columns, optimisticColumn],
@@ -91,7 +87,7 @@ export default function AddColumnDropDownButton({
     onError: (_, __, context) => {
       if (context?.previousTableData) {
         utils.table.getTableById.setData(
-          { tableId, baseId },
+          { tableId },
           context.previousTableData,
         );
       }
@@ -105,7 +101,7 @@ export default function AddColumnDropDownButton({
     onSuccess: (newColumn, _, context) => {
       if (context?.optimisticId && tableData) {
         utils.table.getTableById.setData(
-          { tableId, baseId },
+          { tableId },
           {
             ...tableData,
             columns: tableData.columns.map((col) =>

@@ -189,6 +189,7 @@ export default function Dashboard() {
   const [isOpen, setIsOpen] = useState(false);
   const { data = [], isPending } = api.base.getAllBasesByUser.useQuery();
   const router = useRouter();
+  const utils = api.useUtils();
 
   const baseCreate = api.base.createBase.useMutation({
     onSuccess: (createdBase) => {
@@ -197,7 +198,14 @@ export default function Dashboard() {
   });
 
   const handleCreateBase = () => {
-    baseCreate.mutate({ name: "Untitled Base" });
+    baseCreate.mutate(
+      { name: "Untitled Base" },
+      {
+        onSettled: () => {
+          void utils.base.getAllBasesByUser.invalidate();
+        },
+      },
+    );
   };
 
   const today = dayjs();

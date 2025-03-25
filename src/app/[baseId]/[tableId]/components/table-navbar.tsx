@@ -20,13 +20,7 @@ import Link from "next/link";
 import Image from "next/image";
 import ProfileMenu from "~/app/_components/profile-menu";
 
-export default function TableNavbar({
-  name,
-  email,
-}: {
-  name: string;
-  email: string;
-}) {
+export default function TableNavbar() {
   return (
     <div className="w-full">
       <header className="flex h-14 items-center justify-between bg-primary px-5">
@@ -78,7 +72,7 @@ export default function TableNavbar({
           <div className="mr-5 flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full bg-white">
             <Bell size={15} className="text-[#176da5]" />
           </div>
-          <ProfileMenu name={name} email={email} />
+          <ProfileMenu />
         </div>
       </header>
       <div className="flex h-[32px] bg-primary text-slate-600">

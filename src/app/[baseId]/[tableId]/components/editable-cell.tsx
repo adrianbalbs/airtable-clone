@@ -151,7 +151,6 @@ export const EditableCell = memo(function EditableCell({
         e.preventDefault();
         e.stopPropagation();
 
-
         let direction: "right" | "left" | "up" | "down";
         switch (e.key) {
           case "Tab":

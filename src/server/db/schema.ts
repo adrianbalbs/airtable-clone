@@ -119,8 +119,9 @@ export const bases = createTable(
   }),
 );
 
-export const basesRelations = relations(bases, ({ one }) => ({
+export const basesRelations = relations(bases, ({ one, many }) => ({
   user: one(users, { fields: [bases.createdById], references: [users.id] }),
+  tables: many(tables),
 }));
 
 export const users = createTable("user", {

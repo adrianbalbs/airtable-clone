@@ -1,18 +1,12 @@
 import { Bell, CircleHelp, Menu, Search } from "lucide-react";
 import Image from "next/image";
 
-import { auth } from "~/server/auth";
-import { HydrateClient } from "~/trpc/server";
-import { redirect } from "next/navigation";
+import { api, HydrateClient } from "~/trpc/server";
 import ProfileMenu from "./_components/profile-menu";
 import Dashboard from "./_components/dasboard";
 
 export default async function Home() {
-  const session = await auth();
-
-  if (!session?.user) {
-    redirect("api/auth/signin");
-  }
+  await api.base.getAllBasesByUser.prefetch();
 
   return (
     <HydrateClient>
@@ -44,10 +38,7 @@ export default async function Home() {
           <div className="mr-5 flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full border border-slate-300 hover:bg-slate-200">
             <Bell size={15} />
           </div>
-          <ProfileMenu
-            name={session.user.name ?? "undefined"}
-            email={session.user.email ?? "undefined"}
-          />
+          <ProfileMenu />
         </div>
       </header>
       <Dashboard />
