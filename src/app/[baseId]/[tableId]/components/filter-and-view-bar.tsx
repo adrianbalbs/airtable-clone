@@ -1,6 +1,6 @@
 "use client";
 
-import { MenuButton, MenuItems, Menu, Input } from "@headlessui/react";
+import { MenuButton, MenuItems, Menu } from "@headlessui/react";
 import {
   ListFilter,
   PaintBucket,

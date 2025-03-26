@@ -26,6 +26,21 @@ const viewConfigSchema = z.object({
 });
 
 export const viewRouter = createTRPCRouter({
+  getConfig: protectedProcedure
+    .input(z.object({ tableId: z.number() }))
+    .query(async ({ ctx, input }) => {
+      const { tableId } = input;
+
+      const view = await ctx.db.query.views.findFirst({
+        where: eq(views.table, tableId),
+      });
+
+      if (!view) {
+        throw new TRPCError({ code: "NOT_FOUND" });
+      }
+
+      return view;
+    }),
   updateConfig: protectedProcedure
     .input(
       z.object({
