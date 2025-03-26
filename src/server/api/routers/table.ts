@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { and, asc, count, eq, exists, gt, ilike, sql } from "drizzle-orm";
+import { and, asc, count, eq, exists, gt, sql } from "drizzle-orm";
 import { bases, columns, rows, tables } from "~/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { faker } from "@faker-js/faker";
