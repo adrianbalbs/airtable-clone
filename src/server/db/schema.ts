@@ -21,6 +21,43 @@ import { type AdapterAccount } from "next-auth/adapters";
  */
 export const createTable = pgTableCreator((name) => `airtable-clone_${name}`);
 
+export const views = createTable("view", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  table: serial("table")
+    .references(() => tables.id, { onDelete: "cascade" })
+    .notNull(),
+  config: jsonb("config")
+    .$type<{
+      sort?: Array<{
+        columnId: number;
+        direction: "asc" | "desc";
+      }>;
+      filters?: Array<{
+        columnId: number;
+        operator: string;
+        value: string | number;
+      }>;
+      hiddenColumns?: number[];
+    }>()
+    .default({})
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .$onUpdate(() => new Date())
+    .defaultNow()
+    .notNull(),
+});
+
+export const viewsRelations = relations(views, ({ one }) => ({
+  table: one(tables, {
+    fields: [views.table],
+    references: [tables.id],
+  }),
+}));
+
 export const rows = createTable(
   "rows",
   {
@@ -95,6 +132,7 @@ export const tables = createTable("table", {
 export const tablesRelations = relations(tables, ({ many, one }) => ({
   columns: many(columns),
   rows: many(rows),
+  views: many(views),
   base: one(bases, {
     fields: [tables.base],
     references: [bases.id],
