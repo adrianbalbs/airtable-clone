@@ -29,6 +29,13 @@
       "when": 1742605444485,
       "tag": "0003_unknown_the_twelve",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1742990376286,
+      "tag": "0004_clever_vision",
+      "breakpoints": true
     }
   ]
 }
