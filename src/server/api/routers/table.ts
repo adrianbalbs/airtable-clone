@@ -148,7 +148,7 @@ export const tableRouter = createTRPCRouter({
 
             cols.forEach((col) => {
               if (col.type === "text") {
-                rowData[col.name] = faker.lorem.sentence();
+                rowData[col.name] = faker.person.fullName();
               } else if (col.type === "number") {
                 rowData[col.name] = faker.number.int({ min: 0, max: 100000 });
               }
