@@ -106,11 +106,18 @@ export default function FilterAndViewBar() {
               }}
               className="flex items-center p-2"
             >
-              <Input
-                className="h-full w-full flex-1 text-sm"
+              <input
+                className="h-full w-full flex-1 border-none text-sm outline-none"
                 placeholder="Find in view"
                 value={localSearchValue}
-                onChange={handleSearchChange}
+                onChange={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleSearchChange(e);
+                }}
+                onKeyDown={(e) => {
+                  e.stopPropagation();
+                }}
               />
               {localSearchValue && (
                 <X
