@@ -66,8 +66,6 @@ export default function TableNavbar() {
           <ProfileMenu />
         </div>
       </header>
-      <TabSelector />
-      <FilterAndViewBar />
     </div>
   );
 }
