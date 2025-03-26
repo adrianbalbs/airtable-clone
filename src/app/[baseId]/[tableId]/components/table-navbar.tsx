@@ -1,18 +1,8 @@
 import {
-  ArrowDownUp,
-  ArrowUpWideNarrow,
   Bell,
   ChevronDown,
   CircleHelp,
-  ExternalLink,
-  EyeOff,
   History,
-  ListFilter,
-  ListTree,
-  Menu,
-  PaintBucket,
-  Search,
-  Sheet,
   UsersRound,
 } from "lucide-react";
 import Link from "next/link";
