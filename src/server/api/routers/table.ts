@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { and, asc, count, eq, gt, sql } from "drizzle-orm";
+import { and, asc, count, eq, exists, gt, ilike, sql } from "drizzle-orm";
 import { bases, columns, rows, tables } from "~/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { faker } from "@faker-js/faker";
@@ -237,11 +237,12 @@ export const tableRouter = createTRPCRouter({
       }
       if (search) {
         whereConditions.push(
-          sql`EXISTS (
-            SELECT 1
-            FROM jsonb_each_text(${rows.data}) AS t
-            WHERE t.value ILIKE ${`%${search}%`}
-          )`,
+          exists(
+            ctx.db
+              .select()
+              .from(sql`jsonb_each_text(${rows.data}) as t`)
+              .where(sql`t.value ILIKE ${`%${search}%`}`),
+          ),
         );
       }
 
