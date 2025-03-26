@@ -8,8 +8,6 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import ProfileMenu from "~/app/_components/profile-menu";
-import TabSelector from "./tab-selector";
-import FilterAndViewBar from "./filter-and-view-bar";
 
 export default function TableNavbar() {
   return (

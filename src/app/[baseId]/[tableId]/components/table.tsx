@@ -21,6 +21,7 @@ import { notFound } from "next/navigation";
 type TableProps = {
   baseId: number;
   tableId: number;
+  searchValue: string;
 };
 
 type RowData = {
@@ -84,7 +85,7 @@ const Row = memo(function Row({
   );
 });
 
-export function Table({ tableId }: TableProps) {
+export function Table({ tableId, searchValue }: TableProps) {
   const utils = api.useUtils();
   const cellUpdatesRef = useRef<Record<string, unknown>>({});
   const parentRef = useRef<HTMLDivElement>(null);
@@ -96,7 +97,7 @@ export function Table({ tableId }: TableProps) {
   });
 
   const rowsQuery = api.table.fetchRows.useInfiniteQuery(
-    { tableId, pageSize: 100 },
+    { tableId, pageSize: 100, search: searchValue },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       enabled: tableQuery.isSuccess,
@@ -349,7 +350,7 @@ export function Table({ tableId }: TableProps) {
     notFound();
   }
 
-  if (tableQuery.isPending) {
+  if (tableQuery.isPending || rowsQuery.isPending) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader />
