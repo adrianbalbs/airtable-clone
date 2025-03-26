@@ -1,6 +1,10 @@
 import { api, HydrateClient } from "~/trpc/server";
 import TableNavbar from "./components/table-navbar";
-import TableClientWrapper from "./components/table-client-wrapper";
+import TabSelector from "./components/tab-selector";
+import FilterAndViewBar from "./components/filter-and-view-bar";
+import Sidebar from "./components/sidebar";
+import { Table } from "./components/table";
+import { SearchProvider } from "./contexts/search-context";
 
 export default async function Base({
   params,
@@ -21,7 +25,14 @@ export default async function Base({
     <HydrateClient>
       <div className="flex h-screen w-full flex-col">
         <TableNavbar />
-        <TableClientWrapper />
+        <SearchProvider>
+          <TabSelector />
+          <FilterAndViewBar />
+          <div className="flex flex-1 overflow-auto">
+            <Sidebar />
+            <Table tableId={tableId} baseId={baseId} />
+          </div>
+        </SearchProvider>
       </div>
     </HydrateClient>
   );

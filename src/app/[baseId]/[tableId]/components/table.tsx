@@ -17,11 +17,11 @@ import { useCellNavigation } from "../hooks/use-cell-navigation";
 import React from "react";
 import AddColumnDropDownButton from "./add-column-dropdown-button";
 import { notFound } from "next/navigation";
+import { useSearch } from "../contexts/search-context";
 
 type TableProps = {
   baseId: number;
   tableId: number;
-  searchValue: string;
 };
 
 type RowData = {
@@ -85,7 +85,8 @@ const Row = memo(function Row({
   );
 });
 
-export function Table({ tableId, searchValue }: TableProps) {
+export function Table({ tableId }: TableProps) {
+  const { searchValue } = useSearch();
   const utils = api.useUtils();
   const cellUpdatesRef = useRef<Record<string, unknown>>({});
   const parentRef = useRef<HTMLDivElement>(null);

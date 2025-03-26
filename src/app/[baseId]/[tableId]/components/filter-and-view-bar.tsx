@@ -18,33 +18,29 @@ import {
   Shapes,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { useSearch } from "../contexts/search-context";
 
-type FilterAndViewBarProps = {
-  onSearchChange: (search: string) => void;
-};
-
-export default function FilterAndViewBar({
-  onSearchChange,
-}: FilterAndViewBarProps) {
-  const [searchValue, setSearchValue] = useState("");
+export default function FilterAndViewBar() {
+  const { searchValue, updateSearch } = useSearch();
+  const [localSearchValue, setLocalSearchValue] = useState(searchValue);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setSearchValue(value);
+    setLocalSearchValue(value);
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
 
     searchTimeoutRef.current = setTimeout(() => {
-      onSearchChange(value);
+      updateSearch(value);
     }, 300);
   };
 
   const handleClearSearch = () => {
-    setSearchValue("");
-    onSearchChange("");
+    setLocalSearchValue("");
+    updateSearch("");
   };
 
   useEffect(() => {
@@ -113,10 +109,10 @@ export default function FilterAndViewBar({
               <Input
                 className="h-full w-full flex-1 text-sm"
                 placeholder="Find in view"
-                value={searchValue}
+                value={localSearchValue}
                 onChange={handleSearchChange}
               />
-              {searchValue && (
+              {localSearchValue && (
                 <X
                   size={15}
                   className="ml-2 cursor-pointer text-gray-400"
