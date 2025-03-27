@@ -242,7 +242,6 @@ export const tableRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      // Extract filters and sort from view config with proper defaults
       const viewConfig = table.view?.config ?? {};
       const sortConfig: Array<{ columnId: number; direction: "asc" | "desc" }> =
         viewConfig.sort ?? [];
@@ -258,7 +257,6 @@ export const tableRouter = createTRPCRouter({
 
       const whereConditions = [eq(rows.table, tableId)];
 
-      // Apply search filter if provided
       if (search) {
         whereConditions.push(
           exists(
@@ -270,7 +268,6 @@ export const tableRouter = createTRPCRouter({
         );
       }
 
-      // Apply filters from view config
       if (filtersConfig.length > 0) {
         for (const filter of filtersConfig) {
           const column = tableColumns.find((col) => col.id === filter.columnId);
