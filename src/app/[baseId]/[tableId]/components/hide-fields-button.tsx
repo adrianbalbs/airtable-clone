@@ -1,8 +1,9 @@
 "use client";
-import { Menu, MenuButton, MenuItems, Switch } from "@headlessui/react";
-import { EyeOff, GripVertical, Hash, Baseline } from "lucide-react";
+import { Input, Menu, MenuButton, MenuItems, Switch } from "@headlessui/react";
+import { EyeOff, GripVertical, Hash, Baseline, HelpCircle } from "lucide-react";
 import { useParams } from "next/navigation";
 import { api } from "~/trpc/react";
+import { useState } from "react";
 
 export default function HideFieldsButton() {
   const utils = api.useUtils();
@@ -11,6 +12,11 @@ export default function HideFieldsButton() {
   const tableQuery = api.table.getTableById.useQuery({ tableId: tableId });
   const columns = tableQuery.data?.columns;
   const view = tableQuery.data?.view;
+  const [searchText, setSearchText] = useState("");
+
+  const filteredColumns = columns?.filter((column) =>
+    column.name.toLowerCase().includes(searchText.toLowerCase()),
+  );
 
   const updateViewMutation = api.view.updateConfig.useMutation({
     onMutate: async (newConfig) => {
@@ -70,39 +76,57 @@ export default function HideFieldsButton() {
       </MenuButton>
       <MenuItems
         anchor="bottom start"
-        className="z-20 w-[350px] rounded-md border border-slate-300 bg-white p-4 shadow-lg"
+        className="z-20 w-[300px] rounded-md border border-slate-300 bg-white p-4 shadow-lg"
       >
+        <div className="mb-4 flex w-full items-center justify-between border-b border-slate-300">
+          <Input
+            placeholder="Find a field"
+            className="w-full px-1 py-2 text-xs focus:outline-none"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+            }}
+          />
+          <HelpCircle size={15} className="mr-2 text-slate-500" />
+        </div>
         <div className="space-y-2">
-          {columns?.map((column) => {
-            const isHidden =
-              view?.config.hiddenColumns?.includes(column.id) ?? false;
-            return (
-              <div
-                key={column.id}
-                className="flex items-center justify-between"
-              >
-                <div className="flex items-center">
-                  <Switch
-                    checked={!isHidden}
-                    onChange={() => handleToggleColumnVisibility(column.id)}
-                    className="group relative mr-2 flex h-4 w-8 cursor-pointer rounded-full bg-slate-300 p-0.5 transition-colors duration-200 ease-in-out focus:outline-none data-[checked]:bg-green-400 data-[focus]:outline-1 data-[focus]:outline-white"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="pointer-events-none inline-block size-3 translate-x-0 rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out group-data-[checked]:translate-x-4"
-                    />
-                  </Switch>
-                  {column.type === "number" ? (
-                    <Hash size={15} className="mr-2 text-slate-500" />
-                  ) : (
-                    <Baseline size={15} className="mr-2 text-slate-500" />
-                  )}
-                  <p className="text-xs">{column.name}</p>
+          {filteredColumns?.length === 0 ? (
+            <div className="flex items-center">
+              <p className="text-xs text-slate-500">No results found</p>
+            </div>
+          ) : (
+            filteredColumns?.map((column) => {
+              const isHidden =
+                view?.config.hiddenColumns?.includes(column.id) ?? false;
+              return (
+                <div
+                  key={column.id}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center">
+                    <Switch
+                      checked={!isHidden}
+                      onChange={() => handleToggleColumnVisibility(column.id)}
+                      className="group relative mr-2 flex h-4 w-8 cursor-pointer rounded-full bg-slate-300 p-0.5 transition-colors duration-200 ease-in-out focus:outline-none data-[checked]:bg-green-400 data-[focus]:outline-1 data-[focus]:outline-white"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none inline-block size-3 translate-x-0 rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out group-data-[checked]:translate-x-4"
+                      />
+                    </Switch>
+                    {column.type === "number" ? (
+                      <Hash size={15} className="mr-2 text-slate-500" />
+                    ) : (
+                      <Baseline size={15} className="mr-2 text-slate-500" />
+                    )}
+                    <p className="text-xs">{column.name}</p>
+                  </div>
+                  <GripVertical size={15} className="text-slate-500" />
                 </div>
-                <GripVertical size={15} className="text-slate-500" />
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       </MenuItems>
     </Menu>
