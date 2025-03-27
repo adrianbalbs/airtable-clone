@@ -12,7 +12,7 @@ import {
   useReactTable,
   type Row as TableRow,
 } from "@tanstack/react-table";
-import { useMemo, useCallback, useRef, memo } from "react";
+import { useMemo, useCallback, useRef, memo, useEffect } from "react";
 import { useCellNavigation } from "../hooks/use-cell-navigation";
 import React from "react";
 import AddColumnDropDownButton from "./add-column-dropdown-button";
@@ -360,12 +360,15 @@ export function Table({ tableId }: TableProps) {
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+      const pages = rowsQuery.data?.pages;
 
       if (
         scrollHeight - scrollTop - clientHeight < 100 &&
         rowsQuery.hasNextPage &&
         !rowsQuery.isFetchingNextPage &&
-        !rowsQuery.isRefetching
+        !rowsQuery.isRefetching &&
+        pages &&
+        pages.length > 0
       ) {
         void rowsQuery.fetchNextPage();
       }
@@ -374,11 +377,17 @@ export function Table({ tableId }: TableProps) {
   );
 
   const rowVirtualizer = useVirtualizer({
-    count: reactTable.getRowModel().rows.length,
+    count: Math.min(reactTable.getRowModel().rows.length, 1000),
     getScrollElement: () => parentRef.current,
     estimateSize: () => 32,
     overscan: 100,
   });
+
+  useEffect(() => {
+    if (parentRef.current) {
+      parentRef.current.scrollTop = 0;
+    }
+  }, [tableId]);
 
   const isTableLoading = useMemo(
     () =>
