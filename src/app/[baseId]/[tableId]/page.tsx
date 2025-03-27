@@ -15,11 +15,9 @@ export default async function Base({
   const baseId = parseInt(p.baseId);
   const tableId = parseInt(p.tableId);
 
-  await Promise.all([
-    api.base.getBaseById.prefetch({ id: baseId }),
-    api.table.getTableById.prefetch({ tableId }),
-    api.table.fetchRows.prefetchInfinite({ tableId, pageSize: 100 }),
-  ]);
+  await api.base.getBaseById.prefetch({ id: baseId });
+  await api.table.getTableById.prefetch({ tableId });
+  await api.table.fetchRows.prefetchInfinite({ tableId, pageSize: 100 });
 
   return (
     <HydrateClient>
