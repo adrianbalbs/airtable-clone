@@ -360,10 +360,12 @@ export function Table({ tableId }: TableProps) {
   const handleScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
       const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+
       if (
         scrollHeight - scrollTop - clientHeight < 100 &&
         rowsQuery.hasNextPage &&
-        !rowsQuery.isFetchingNextPage
+        !rowsQuery.isFetchingNextPage &&
+        !rowsQuery.isRefetching
       ) {
         void rowsQuery.fetchNextPage();
       }
@@ -376,14 +378,28 @@ export function Table({ tableId }: TableProps) {
     getScrollElement: () => parentRef.current,
     estimateSize: () => 32,
     overscan: 100,
-    initialRect: { width: 0, height: 0 },
   });
+
+  const isTableLoading = useMemo(
+    () =>
+      tableQuery.isPending ||
+      rowsQuery.isPending ||
+      rowsQuery.isRefetching ||
+      (rowsQuery.isSuccess && rowsQuery.data.pages.length === 0),
+    [
+      tableQuery.isPending,
+      rowsQuery.isPending,
+      rowsQuery.isRefetching,
+      rowsQuery.isSuccess,
+      rowsQuery.data?.pages,
+    ],
+  );
 
   if (tableQuery.isError) {
     notFound();
   }
 
-  if (tableQuery.isPending || rowsQuery.isPending) {
+  if (isTableLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader />
@@ -395,6 +411,7 @@ export function Table({ tableId }: TableProps) {
     <div className="flex h-full w-full flex-col overflow-hidden">
       <div
         ref={parentRef}
+        data-table-container="true"
         className="flex-1 overflow-auto"
         onScroll={handleScroll}
       >

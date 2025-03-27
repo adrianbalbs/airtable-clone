@@ -38,6 +38,14 @@ export default function SortButton() {
 
   const updateViewMutation = api.view.updateConfig.useMutation({
     onMutate: async (newConfig) => {
+      utils.table.fetchRows.setInfiniteData(
+        { tableId, pageSize: 100, search: searchValue },
+        (old) => {
+          if (!old) return { pages: [], pageParams: [] };
+          return { ...old, pages: [] };
+        },
+      );
+
       await utils.table.getTableById.cancel({ tableId });
       await utils.table.fetchRows.cancel({ tableId });
 
@@ -60,6 +68,11 @@ export default function SortButton() {
       return { previousData };
     },
     onSettled: () => {
+      utils.table.fetchRows.setInfiniteData(
+        { tableId, pageSize: 100, search: searchValue },
+        undefined,
+      );
+
       void utils.table.getTableById.invalidate({ tableId });
       void utils.table.fetchRows.invalidate({
         tableId,
@@ -165,6 +178,9 @@ export default function SortButton() {
       <MenuButton className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
         <ArrowDownUp size={15} className="mr-2" />
         <p className="mr-2">Sort</p>
+        {updateViewMutation.isPending && (
+          <span className="ml-1 h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+        )}
       </MenuButton>
       <MenuItems
         anchor="bottom start"
@@ -183,9 +199,13 @@ export default function SortButton() {
                 onChange={(column) => {
                   updateSort(index, { column });
                 }}
+                disabled={updateViewMutation.isPending}
               >
                 <div className="relative w-full flex-1">
-                  <ListboxButton className="mb-4 flex w-full items-center justify-between rounded-md border border-slate-300 p-2 text-xs text-gray-500 shadow-md">
+                  <ListboxButton
+                    className={`mb-4 flex w-full items-center justify-between rounded-md border border-slate-300 p-2 text-xs text-gray-500 shadow-md ${updateViewMutation.isPending ? "cursor-not-allowed opacity-50" : ""}`}
+                    disabled={updateViewMutation.isPending}
+                  >
                     <div className="flex items-center">
                       {sort.column ? (
                         <>
@@ -212,6 +232,7 @@ export default function SortButton() {
                         key={column.id}
                         value={column}
                         className="flex cursor-pointer items-center rounded px-2 py-1 hover:bg-gray-100"
+                        disabled={updateViewMutation.isPending}
                       >
                         {column.type === "text" ? (
                           <Baseline size={15} className="mr-2" />
@@ -230,10 +251,13 @@ export default function SortButton() {
                 onChange={(direction) => {
                   updateSort(index, { direction });
                 }}
-                disabled={!sort.column}
+                disabled={!sort.column || updateViewMutation.isPending}
               >
                 <div className="relative">
-                  <ListboxButton className="mb-4 flex w-full items-center justify-between rounded-md border border-slate-300 p-2 text-xs text-gray-500 shadow-md disabled:opacity-50">
+                  <ListboxButton
+                    className={`mb-4 flex w-full items-center justify-between rounded-md border border-slate-300 p-2 text-xs text-gray-500 shadow-md disabled:opacity-50 ${updateViewMutation.isPending ? "cursor-not-allowed opacity-50" : ""}`}
+                    disabled={!sort.column || updateViewMutation.isPending}
+                  >
                     <div className="flex items-center">
                       {sort.column ? (
                         <span>
@@ -261,6 +285,7 @@ export default function SortButton() {
                         key={option.value}
                         value={option.value}
                         className="flex cursor-pointer items-center rounded px-2 py-1 hover:bg-gray-100"
+                        disabled={updateViewMutation.isPending}
                       >
                         <span>{option.label}</span>
                       </ListboxOption>
@@ -269,8 +294,9 @@ export default function SortButton() {
                 </div>
               </Listbox>
               <button
-                className="mb-4 flex h-[32px] w-[32px] items-center justify-center rounded-md text-gray-500 hover:bg-gray-100"
+                className={`mb-4 flex h-[32px] w-[32px] items-center justify-center rounded-md text-gray-500 hover:bg-gray-100 ${updateViewMutation.isPending ? "cursor-not-allowed opacity-50" : ""}`}
                 onClick={() => removeSort(index)}
+                disabled={updateViewMutation.isPending}
               >
                 <X size={15} />
               </button>
@@ -278,8 +304,8 @@ export default function SortButton() {
           ))}
         </div>
         <div
-          className="flex cursor-pointer items-center text-sm text-slate-500 hover:text-slate-700"
-          onClick={addNewSort}
+          className={`flex items-center text-sm text-slate-500 hover:text-slate-700 ${updateViewMutation.isPending ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+          onClick={updateViewMutation.isPending ? undefined : addNewSort}
         >
           <Plus size={15} className="mr-2" />
           <p className="text-sm">Add another sort</p>
