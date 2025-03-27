@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
-import { and, asc, count, eq, exists, gt, sql } from "drizzle-orm";
-import { bases, columns, rows, tables } from "~/server/db/schema";
+import { and, asc, count, desc, eq, exists, gt, sql } from "drizzle-orm";
+import { bases, columns, rows, tables, views } from "~/server/db/schema";
 import { TRPCError } from "@trpc/server";
 import { faker } from "@faker-js/faker";
 
@@ -59,7 +59,11 @@ export const tableRouter = createTRPCRouter({
             { table: table.id },
           ])
           .returning();
-        return { ...table, columns: _cols, rows: _rows };
+        const view = await tx.insert(views).values({
+          table: table.id,
+          config: {},
+        });
+        return { ...table, view, columns: _cols, rows: _rows };
       });
       return table;
     }),
@@ -133,16 +137,13 @@ export const tableRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      const BATCH_SIZE = 1000;
-      const batches = Math.ceil(numRows / BATCH_SIZE);
+      const batchSize = 1000;
+      const batches = Math.ceil(numRows / batchSize);
       const allRows: (typeof rows.$inferSelect)[] = [];
 
       await ctx.db.transaction(async (tx) => {
         for (let i = 0; i < batches; i++) {
-          const currentBatchSize = Math.min(
-            BATCH_SIZE,
-            numRows - i * BATCH_SIZE,
-          );
+          const currentBatchSize = Math.min(batchSize, numRows - i * batchSize);
           const fakeRows = Array.from({ length: currentBatchSize }, () => {
             const rowData: Record<string, string | number | null> = {};
 
@@ -226,10 +227,23 @@ export const tableRouter = createTRPCRouter({
       const { tableId, cursor, pageSize, search } = input;
       const table = await ctx.db.query.tables.findFirst({
         where: eq(tables.id, tableId),
+        with: {
+          view: true,
+        },
       });
       if (!table) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
+
+      const viewConfig: {
+        sort: Array<{ columnId: number; direction: "asc" | "desc" }>;
+      } = table.view?.config.sort
+        ? { sort: table.view.config.sort }
+        : { sort: [] };
+
+      const tableColumns = await ctx.db.query.columns.findMany({
+        where: eq(columns.table, tableId),
+      });
 
       const whereConditions = [eq(rows.table, tableId)];
       if (cursor) {
@@ -246,12 +260,34 @@ export const tableRouter = createTRPCRouter({
         );
       }
 
+      const orderByConditions = [];
+      if (viewConfig.sort && viewConfig.sort.length > 0) {
+        for (const sortConfig of viewConfig.sort) {
+          const column = tableColumns.find(
+            (col) => col.id === sortConfig.columnId,
+          );
+          if (!column) continue;
+
+          const valueExpr =
+            column.type === "number"
+              ? sql`(${rows.data}->>${column.name})::numeric`
+              : sql`${rows.data}->>${column.name}`;
+
+          orderByConditions.push(
+            sortConfig.direction === "asc" ? asc(valueExpr) : desc(valueExpr),
+          );
+        }
+      }
+
+      // We need to keep this last sort condition in for the cursor to not break
+      orderByConditions.push(asc(rows.id));
+
       const allRows = await ctx.db
         .select()
         .from(rows)
         .where(and(...whereConditions))
         .limit(pageSize + 1)
-        .orderBy(asc(rows.id));
+        .orderBy(...orderByConditions);
 
       let nextCursor: number | null = null;
       if (allRows.length > pageSize) {
