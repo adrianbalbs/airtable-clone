@@ -1,0 +1,1 @@
+ALTER TABLE "airtable-clone_view" DROP COLUMN IF EXISTS "name";
