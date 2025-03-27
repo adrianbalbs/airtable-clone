@@ -8,7 +8,6 @@ import { useParams } from "next/navigation";
 import FilterRow from "./filter-row";
 import { useSearch } from "../contexts/search-context";
 
-// Define type for a filter condition
 type FilterCondition = {
   id: number;
   columnId: number | null;

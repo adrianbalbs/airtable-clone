@@ -62,7 +62,7 @@ const Row = memo(function Row({
           key={`${row.id}-${column.id}`}
           className="flex h-[32px] items-center border-b border-slate-300"
           style={{
-            width: cell.column.getSize(),
+            width: cellIndex === 0 ? 230 : 180,
             backgroundColor:
               cellIndex === 0 && sortedColumnIds.includes(columns[0]?.id ?? 0)
                 ? "#fff2ea"
@@ -335,7 +335,6 @@ export function Table({ tableId }: TableProps) {
               />
             );
           },
-          size: col.name === "Name" ? 230 : 180,
         }),
       ),
     [
@@ -351,9 +350,24 @@ export function Table({ tableId }: TableProps) {
 
   const rowData = useMemo(() => rows.map((row) => row.data || {}), [rows]);
 
+  const hiddenColumns = useMemo(() => {
+    const hiddenColumns = tableQuery.data?.view?.config.hiddenColumns?.reduce(
+      (acc, colId) => {
+        const column = columns.find((col) => col.id === colId);
+        if (column) {
+          acc[column.name] = false;
+        }
+        return acc;
+      },
+      {} as Record<string, boolean>,
+    );
+    return hiddenColumns;
+  }, [tableQuery.data, columns]);
+
   const reactTable = useReactTable({
     data: rowData,
     columns: tableColumns,
+    state: { columnVisibility: hiddenColumns },
     getCoreRowModel: getCoreRowModel(),
   });
 
@@ -435,11 +449,11 @@ export function Table({ tableId }: TableProps) {
           <div className="sticky top-0 z-10 border-b border-slate-300 bg-white">
             {reactTable.getHeaderGroups().map((headerGroup) => (
               <div key={headerGroup.id} className="flex">
-                {headerGroup.headers.map((header) => (
+                {headerGroup.headers.map((header, index) => (
                   <div
                     key={header.id}
                     className="flex h-[32px] items-center justify-between border-r border-slate-300 bg-gray-100"
-                    style={{ width: header.getSize() }}
+                    style={{ width: index === 0 ? 230 : 180 }}
                   >
                     {header.isPlaceholder
                       ? null
