@@ -280,9 +280,11 @@ export const tableRouter = createTRPCRouter({
               ? sql`(${rows.data}->>${column.name})::numeric`
               : sql`${rows.data}->>${column.name}`;
 
-          orderByConditions.push(
-            sortConfig.direction === "asc" ? asc(valueExpr) : desc(valueExpr),
-          );
+          if (sortConfig.direction === "asc") {
+            orderByConditions.push(sql`${valueExpr} asc nulls last`);
+          } else {
+            orderByConditions.push(sql`${valueExpr} desc nulls last`);
+          }
         }
       }
 
