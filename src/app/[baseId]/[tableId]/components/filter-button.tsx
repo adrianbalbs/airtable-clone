@@ -154,16 +154,16 @@ export default function FilterButton() {
   const hasValidFilters = useMemo(() => {
     if (filters.length === 0) return true;
 
-    const filtersWithColumns = filters.filter(
-      (filter) => filter.columnId !== null,
-    );
-    if (filtersWithColumns.length === 0) return false;
+    const hasIncompleteFilter = filters.some((filter) => {
+      if (filter.columnId === null) return true;
 
-    return filtersWithColumns.some((filter) => {
       const needsValue =
         filter.operator !== "is_empty" && filter.operator !== "is_not_empty";
-      return !needsValue || (filter.value && filter.value.trim() !== "");
+
+      return needsValue && (!filter.value || filter.value.trim() === "");
     });
+
+    return !hasIncompleteFilter;
   }, [filters]);
 
   const updateFilters = useCallback(() => {
