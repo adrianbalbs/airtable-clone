@@ -50,20 +50,20 @@ export const tableRouter = createTRPCRouter({
           ])
           .returning();
 
-        const _rows = await tx
+        await tx
           .insert(rows)
           .values([
             { table: table.id },
             { table: table.id },
             { table: table.id },
             { table: table.id },
-          ])
-          .returning();
+          ]);
+
         const view = await tx.insert(views).values({
           table: table.id,
           config: {},
         });
-        return { ...table, view, columns: _cols, rows: _rows };
+        return { ...table, view, columns: _cols };
       });
       return table;
     }),
@@ -75,15 +75,16 @@ export const tableRouter = createTRPCRouter({
 
       const table = await ctx.db.query.tables.findFirst({
         where: eq(tables.id, tableId),
+        with: {
+          view: true,
+          columns: true,
+        },
       });
 
-      const cols = await ctx.db.query.columns.findMany({
-        where: eq(columns.table, tableId),
-      });
       if (!table) {
         throw new TRPCError({ code: "NOT_FOUND" });
       }
-      return { table, columns: cols };
+      return table;
     }),
 
   addRow: protectedProcedure
