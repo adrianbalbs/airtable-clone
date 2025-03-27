@@ -242,11 +242,15 @@ export const tableRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND" });
       }
 
-      const viewConfig: {
-        sort: Array<{ columnId: number; direction: "asc" | "desc" }>;
-      } = table.view?.config.sort
-        ? { sort: table.view.config.sort }
-        : { sort: [] };
+      // Extract filters and sort from view config with proper defaults
+      const viewConfig = table.view?.config ?? {};
+      const sortConfig: Array<{ columnId: number; direction: "asc" | "desc" }> =
+        viewConfig.sort ?? [];
+      const filtersConfig: Array<{
+        columnId: number;
+        operator: string;
+        value: string | number;
+      }> = viewConfig.filters ?? [];
 
       const tableColumns = await ctx.db.query.columns.findMany({
         where: eq(columns.table, tableId),
@@ -254,25 +258,78 @@ export const tableRouter = createTRPCRouter({
 
       const whereConditions = [eq(rows.table, tableId)];
 
+      // Apply search filter if provided
       if (search) {
         whereConditions.push(
           exists(
             ctx.db
               .select()
               .from(sql`jsonb_each_text(${rows.data}) as t`)
-              .where(sql`t.value ILIKE ${`%${search}%`}`),
+              .where(sql`t.value ilike ${`%${search}%`}`),
           ),
         );
       }
 
+      // Apply filters from view config
+      if (filtersConfig.length > 0) {
+        for (const filter of filtersConfig) {
+          const column = tableColumns.find((col) => col.id === filter.columnId);
+          if (!column) continue;
+
+          const valueExpr = sql`${rows.data}->>${column.name}`;
+          const numericValueExpr = sql`(${rows.data}->>${column.name})::numeric`;
+
+          switch (filter.operator) {
+            case "equals":
+              whereConditions.push(sql`${valueExpr} = ${filter.value}`);
+              break;
+            case "does_not_equal":
+              whereConditions.push(sql`${valueExpr} <> ${filter.value}`);
+              break;
+            case "contains":
+              whereConditions.push(
+                sql`${valueExpr} ilike ${`%${filter.value}%`}`,
+              );
+              break;
+            case "does_not_contain":
+              whereConditions.push(
+                sql`${valueExpr} not ilike ${`%${filter.value}%`}`,
+              );
+              break;
+            case "is_empty":
+              whereConditions.push(
+                sql`(${valueExpr} is null or ${valueExpr} = '')`,
+              );
+              break;
+            case "is_not_empty":
+              whereConditions.push(
+                sql`(${valueExpr} is not null and ${valueExpr} <> '')`,
+              );
+              break;
+            case "greater_than":
+              if (column.type === "number") {
+                whereConditions.push(
+                  sql`${numericValueExpr} > ${Number(filter.value)}`,
+                );
+              }
+              break;
+            case "less_than":
+              if (column.type === "number") {
+                whereConditions.push(
+                  sql`${numericValueExpr} < ${Number(filter.value)}`,
+                );
+              }
+              break;
+          }
+        }
+      }
+
       const orderByConditions = [];
-      const hasSortConfig = viewConfig.sort && viewConfig.sort.length > 0;
+      const hasSortConfig = sortConfig.length > 0;
 
       if (hasSortConfig) {
-        for (const sortConfig of viewConfig.sort) {
-          const column = tableColumns.find(
-            (col) => col.id === sortConfig.columnId,
-          );
+        for (const sort of sortConfig) {
+          const column = tableColumns.find((col) => col.id === sort.columnId);
           if (!column) continue;
 
           const valueExpr =
@@ -280,7 +337,7 @@ export const tableRouter = createTRPCRouter({
               ? sql`(${rows.data}->>${column.name})::numeric`
               : sql`${rows.data}->>${column.name}`;
 
-          if (sortConfig.direction === "asc") {
+          if (sort.direction === "asc") {
             orderByConditions.push(sql`${valueExpr} asc nulls last`);
           } else {
             orderByConditions.push(sql`${valueExpr} desc nulls last`);
@@ -297,12 +354,10 @@ export const tableRouter = createTRPCRouter({
           const keysetConditions = [];
           let seenInequality = false;
 
-          for (const sortConfig of viewConfig.sort) {
+          for (const sort of sortConfig) {
             if (seenInequality) break;
 
-            const column = tableColumns.find(
-              (col) => col.id === sortConfig.columnId,
-            );
+            const column = tableColumns.find((col) => col.id === sort.columnId);
             if (!column || cursor.sortValues[column.name] === undefined)
               continue;
 
@@ -312,7 +367,7 @@ export const tableRouter = createTRPCRouter({
                 ? sql`(${rows.data}->>${column.name})::numeric`
                 : sql`${rows.data}->>${column.name}`;
 
-            const isAsc = sortConfig.direction === "asc";
+            const isAsc = sort.direction === "asc";
 
             keysetConditions.push(
               sql`(${valueExpr} ${isAsc ? sql`>` : sql`<`} ${prevValue})`,
@@ -350,9 +405,9 @@ export const tableRouter = createTRPCRouter({
           const sortValues: Record<string, string | number | null> = {};
 
           if (hasSortConfig) {
-            for (const sortConfig of viewConfig.sort) {
+            for (const sort of sortConfig) {
               const column = tableColumns.find(
-                (col) => col.id === sortConfig.columnId,
+                (col) => col.id === sort.columnId,
               );
               if (!column) continue;
 
