@@ -221,77 +221,84 @@ export default function FilterButton() {
 
   return (
     <Menu>
-      <MenuButton className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
-        <ListFilter size={15} className="mr-2" />
-        <p className="mr-2">Filter</p>
-        {(updateViewMutation.isPending || isApplyingFilters) && (
-          <span className="ml-1 h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
-        )}
-      </MenuButton>
-      <MenuItems
-        anchor="bottom start"
-        className="z-20 w-[590px] rounded-md border border-slate-300 bg-white p-4 shadow-lg"
-      >
-        <div className="text-sm">
-          <p className="mb-4">In this view, show records</p>
-          <div className="flex flex-col space-y-2">
-            {filters.map((filter, index) => (
-              <div key={filter.id} className="flex items-center">
-                <div className="flex items-center justify-between">
-                  <p className="mr-2 w-10">{index === 0 ? "Where" : "And"}</p>
-                  <FilterRow
-                    tableData={tableData}
-                    filter={filter}
-                    onDelete={() => removeFilterCondition(filter.id)}
-                    onUpdate={(columnId, operator, value) =>
-                      updateFilterCondition(
-                        filter.id,
-                        columnId,
-                        operator,
-                        value,
-                      )
-                    }
-                  />
-                </div>
-              </div>
-            ))}
-
-            {filters.length === 0 && (
-              <p className="py-2 italic text-slate-500">
-                No filter conditions applied
-              </p>
+      {({ close }) => (
+        <div>
+          <MenuButton className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
+            <ListFilter size={15} className="mr-2" />
+            <p className="mr-2">Filter</p>
+            {(updateViewMutation.isPending || isApplyingFilters) && (
+              <span className="ml-1 h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
             )}
-          </div>
-          <div className="flex items-center justify-between">
-            <div
-              className="mt-3 flex cursor-pointer items-center text-slate-500 hover:text-slate-700"
-              onClick={(e) => {
-                e.stopPropagation();
-                addFilterCondition();
-              }}
-            >
-              <Plus size={15} className="mr-2" />
-              <p>Add condition</p>
+          </MenuButton>
+          <MenuItems
+            anchor="bottom start"
+            className="z-20 w-[590px] rounded-md border border-slate-300 bg-white p-4 shadow-lg"
+          >
+            <div className="text-sm">
+              <p className="mb-4">In this view, show records</p>
+              <div className="flex flex-col space-y-2">
+                {filters.map((filter, index) => (
+                  <div key={filter.id} className="flex items-center">
+                    <div className="flex items-center justify-between">
+                      <p className="mr-2 w-10">
+                        {index === 0 ? "Where" : "And"}
+                      </p>
+                      <FilterRow
+                        tableData={tableData}
+                        filter={filter}
+                        onDelete={() => removeFilterCondition(filter.id)}
+                        onUpdate={(columnId, operator, value) =>
+                          updateFilterCondition(
+                            filter.id,
+                            columnId,
+                            operator,
+                            value,
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                ))}
+
+                {filters.length === 0 && (
+                  <p className="py-2 italic text-slate-500">
+                    No filter conditions applied
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center justify-between">
+                <div
+                  className="mt-3 flex cursor-pointer items-center text-slate-500 hover:text-slate-700"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addFilterCondition();
+                  }}
+                >
+                  <Plus size={15} className="mr-2" />
+                  <p>Add condition</p>
+                </div>
+                <button
+                  className={`mt-3 flex cursor-pointer items-center rounded-md p-2 text-xs text-white ${
+                    hasValidFilters
+                      ? "bg-blue-500 hover:bg-blue-600"
+                      : "cursor-not-allowed bg-blue-300"
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (hasValidFilters) {
+                      handleApplyFilters();
+                      close();
+                    }
+                  }}
+                  disabled={!hasValidFilters}
+                >
+                  <p>Apply Filters</p>
+                </button>
+              </div>
             </div>
-            <button
-              className={`mt-3 flex cursor-pointer items-center rounded-md p-2 text-xs text-white ${
-                hasValidFilters
-                  ? "bg-blue-500 hover:bg-blue-600"
-                  : "cursor-not-allowed bg-blue-300"
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (hasValidFilters) {
-                  handleApplyFilters();
-                }
-              }}
-              disabled={!hasValidFilters}
-            >
-              <p>Apply Filters</p>
-            </button>
-          </div>
+          </MenuItems>
         </div>
-      </MenuItems>
+      )}
     </Menu>
   );
 }

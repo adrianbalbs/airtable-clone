@@ -270,6 +270,9 @@ export default function FilterRow({
         type="text"
         value={filterValue}
         onChange={handleInputChange}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+        }}
         className="w-36 border-x border-y border-slate-300 bg-white p-2 text-xs text-gray-500 focus:outline-none focus:ring-0"
         placeholder="Value"
         disabled={isEmptyOperator}
