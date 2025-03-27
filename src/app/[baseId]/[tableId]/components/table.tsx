@@ -401,8 +401,15 @@ export function Table({ tableId }: TableProps) {
 
   if (isTableLoading) {
     return (
-      <div className="flex h-full w-full items-center justify-center">
-        <Loader />
+      <div className="flex h-full w-full flex-col overflow-hidden">
+        <div className="flex-1 overflow-auto">
+          <div className="flex h-full w-full items-center justify-center">
+            <Loader />
+          </div>
+        </div>
+        <div className="flex border-t border-slate-300 text-xs">
+          <p className="mr-2 py-2 pl-4">0 records</p>
+        </div>
       </div>
     );
   }
