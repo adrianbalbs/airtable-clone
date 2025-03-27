@@ -9,6 +9,7 @@ type EditableCellProps = {
   tableId: number;
   onNavigate?: (direction: "right" | "left" | "up" | "down") => void;
   onCellUpdate?: (rowId: number, columnId: number, value: unknown) => void;
+  isSorted?: boolean;
 };
 
 export const EditableCell = memo(function EditableCell({
@@ -19,6 +20,7 @@ export const EditableCell = memo(function EditableCell({
   tableId,
   onNavigate,
   onCellUpdate,
+  isSorted,
 }: EditableCellProps) {
   const [localValue, setLocalValue] = useState(value?.toString() ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -200,6 +202,7 @@ export const EditableCell = memo(function EditableCell({
         type="text"
         className="h-full w-full cursor-text px-2 focus:outline-blue-500"
         data-cell-id={`${columnId}-${rowId}`}
+        style={{ backgroundColor: isSorted ? "#fff2ea" : undefined }}
       />
     </div>
   );

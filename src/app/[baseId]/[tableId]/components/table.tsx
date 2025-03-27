@@ -45,10 +45,12 @@ const Row = memo(function Row({
   row,
   virtualRow,
   columns,
+  sortedColumnIds,
 }: {
   row: TableRow<Record<string, string | number | null>>;
   virtualRow: VirtualItem;
   columns: ColumnDef[];
+  sortedColumnIds: number[];
 }) {
   const cells = useMemo(() => {
     return row.getVisibleCells().map((cell, cellIndex) => {
@@ -59,7 +61,13 @@ const Row = memo(function Row({
         <div
           key={`${row.id}-${column.id}`}
           className="flex h-[32px] items-center border-b border-slate-300"
-          style={{ width: cell.column.getSize() }}
+          style={{
+            width: cell.column.getSize(),
+            backgroundColor:
+              cellIndex === 0 && sortedColumnIds.includes(columns[0]?.id ?? 0)
+                ? "#fff2ea"
+                : undefined,
+          }}
         >
           {cellIndex === 0 && (
             <span className="flex h-full w-[70px] items-center p-4 text-gray-500">
@@ -70,7 +78,7 @@ const Row = memo(function Row({
         </div>
       );
     });
-  }, [row, columns, virtualRow.index]);
+  }, [row, columns, virtualRow.index, sortedColumnIds]);
 
   return (
     <div
@@ -115,6 +123,15 @@ export function Table({ tableId }: TableProps) {
 
   const columns = useMemo(
     () => (tableQuery.isSuccess ? tableQuery.data.columns : []),
+    [tableQuery.data, tableQuery.isSuccess],
+  );
+
+  const sortedColumnIds = useMemo(
+    () =>
+      tableQuery.isSuccess
+        ? (tableQuery.data.view?.config.sort?.map((sort) => sort.columnId) ??
+          [])
+        : [],
     [tableQuery.data, tableQuery.isSuccess],
   );
 
@@ -295,26 +312,36 @@ export function Table({ tableId }: TableProps) {
             const value = info.getValue();
             const rowIndex = info.row.index;
             const row = rows[rowIndex];
+            const column = columns.find((col) => col.name === info.column.id);
 
-            if (!row) return null;
+            if (!row || !column) return null;
 
             return (
               <EditableCell
-                key={`cell-${row.id}-${col.id}`}
+                key={`cell-${row.id}-${column.id}`}
                 value={value}
                 rowId={row.id}
-                columnId={col.id}
-                columnType={col.type}
+                columnId={column.id}
+                columnType={column.type}
                 tableId={tableId}
                 onNavigate={handleNavigate}
                 onCellUpdate={storeCellUpdate}
+                isSorted={sortedColumnIds.includes(column.id)}
               />
             );
           },
           size: col.name === "Name" ? 230 : 180,
         }),
       ),
-    [columns, columnHelper, rows, tableId, handleNavigate, storeCellUpdate],
+    [
+      columns,
+      columnHelper,
+      rows,
+      tableId,
+      handleNavigate,
+      storeCellUpdate,
+      sortedColumnIds,
+    ],
   );
 
   const rowData = useMemo(() => rows.map((row) => row.data || {}), [rows]);
@@ -404,6 +431,7 @@ export function Table({ tableId }: TableProps) {
                   row={row}
                   virtualRow={virtualRow}
                   columns={columns}
+                  sortedColumnIds={sortedColumnIds}
                 />
               );
             })}
