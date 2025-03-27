@@ -153,38 +153,41 @@ export function Table({ tableId }: TableProps) {
   );
 
   const applyCellUpdates = useCallback(() => {
-    utils.table.fetchRows.setInfiniteData({ tableId, pageSize: 100 }, (old) => {
-      if (!old) return old;
-      return {
-        ...old,
-        pages: old.pages.map((page) => ({
-          ...page,
-          rows: page.rows.map((row) => {
-            const updatedData = { ...row.data };
-            let hasUpdates = false;
+    utils.table.fetchRows.setInfiniteData(
+      { tableId, pageSize: 100, search: searchValue },
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            rows: page.rows.map((row) => {
+              const updatedData = { ...row.data };
+              let hasUpdates = false;
 
-            columns.forEach((col) => {
-              const key = `${row.id}-${col.id}`;
-              if (key in cellUpdatesRef.current) {
-                updatedData[col.name] = cellUpdatesRef.current[key] as
-                  | string
-                  | number
-                  | null;
-                hasUpdates = true;
+              columns.forEach((col) => {
+                const key = `${row.id}-${col.id}`;
+                if (key in cellUpdatesRef.current) {
+                  updatedData[col.name] = cellUpdatesRef.current[key] as
+                    | string
+                    | number
+                    | null;
+                  hasUpdates = true;
+                }
+              });
+              if (hasUpdates) {
+                return {
+                  ...row,
+                  data: updatedData,
+                };
               }
-            });
-            if (hasUpdates) {
-              return {
-                ...row,
-                data: updatedData,
-              };
-            }
-            return row;
-          }),
-        })),
-      };
-    });
-  }, [utils.table.fetchRows, tableId, columns]);
+              return row;
+            }),
+          })),
+        };
+      },
+    );
+  }, [utils.table.fetchRows, tableId, columns, searchValue]);
 
   const addRow = api.table.addRow.useMutation({
     onMutate: async () => {
@@ -197,10 +200,10 @@ export function Table({ tableId }: TableProps) {
         emptyRowData[col.name] = null;
       });
 
-      const optimisticId = -Date.now();
+      const tempId = -Date.now();
 
-      const optimisticRow: RowData = {
-        id: optimisticId,
+      const tempRow: RowData = {
+        id: tempId,
         table: tableId,
         data: emptyRowData,
         createdAt: new Date(),
@@ -208,7 +211,7 @@ export function Table({ tableId }: TableProps) {
       };
 
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100 },
+        { tableId, pageSize: 100, search: searchValue },
         (old) => {
           if (!old) return old;
           const lastPageIndex = old.pages.length - 1;
@@ -218,7 +221,7 @@ export function Table({ tableId }: TableProps) {
               if (pageIndex === lastPageIndex) {
                 return {
                   ...page,
-                  rows: [...page.rows, optimisticRow],
+                  rows: [...page.rows, tempRow],
                 };
               }
               return page;
@@ -227,20 +230,18 @@ export function Table({ tableId }: TableProps) {
         },
       );
 
-      return { optimisticRow, optimisticId };
+      return { tempRow, tempId };
     },
     onError: (err, _, context) => {
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100 },
+        { tableId, pageSize: 100, search: searchValue },
         (old) => {
           if (!old) return old;
           return {
             ...old,
             pages: old.pages.map((page) => ({
               ...page,
-              rows: page.rows.filter(
-                (row) => row.id !== context?.optimisticRow.id,
-              ),
+              rows: page.rows.filter((row) => row.id !== context?.tempRow.id),
             })),
           };
         },
@@ -248,7 +249,7 @@ export function Table({ tableId }: TableProps) {
     },
     onSuccess: (newRow, _, context) => {
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100 },
+        { tableId, pageSize: 100, search: searchValue },
         (old) => {
           if (!old) return old;
           return {
@@ -256,7 +257,7 @@ export function Table({ tableId }: TableProps) {
             pages: old.pages.map((page) => ({
               ...page,
               rows: page.rows.map((row) => {
-                if (row.id === context?.optimisticId) {
+                if (row.id === context?.tempId) {
                   return newRow;
                 }
                 return row;
@@ -279,7 +280,11 @@ export function Table({ tableId }: TableProps) {
       await utils.table.fetchRows.cancel();
     },
     onSettled: () => {
-      void utils.table.fetchRows.invalidate({ tableId });
+      void utils.table.fetchRows.invalidate({
+        tableId,
+        search: searchValue,
+        pageSize: 100,
+      });
     },
   });
 

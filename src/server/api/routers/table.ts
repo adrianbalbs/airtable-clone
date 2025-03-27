@@ -218,7 +218,14 @@ export const tableRouter = createTRPCRouter({
     .input(
       z.object({
         tableId: z.number(),
-        cursor: z.number().optional(),
+        cursor: z
+          .object({
+            id: z.number(),
+            sortValues: z
+              .record(z.union([z.string(), z.number(), z.null()]))
+              .optional(),
+          })
+          .optional(),
         pageSize: z.number().min(1).max(100).default(20),
         search: z.string().optional(),
       }),
@@ -246,9 +253,7 @@ export const tableRouter = createTRPCRouter({
       });
 
       const whereConditions = [eq(rows.table, tableId)];
-      if (cursor) {
-        whereConditions.push(gt(rows.id, cursor));
-      }
+
       if (search) {
         whereConditions.push(
           exists(
@@ -261,7 +266,9 @@ export const tableRouter = createTRPCRouter({
       }
 
       const orderByConditions = [];
-      if (viewConfig.sort && viewConfig.sort.length > 0) {
+      const hasSortConfig = viewConfig.sort && viewConfig.sort.length > 0;
+
+      if (hasSortConfig) {
         for (const sortConfig of viewConfig.sort) {
           const column = tableColumns.find(
             (col) => col.id === sortConfig.columnId,
@@ -279,8 +286,53 @@ export const tableRouter = createTRPCRouter({
         }
       }
 
-      // We need to keep this last sort condition in for the cursor to not break
       orderByConditions.push(asc(rows.id));
+
+      if (cursor) {
+        const lastRowId = cursor.id;
+
+        if (hasSortConfig && cursor.sortValues) {
+          const keysetConditions = [];
+          let seenInequality = false;
+
+          for (const sortConfig of viewConfig.sort) {
+            if (seenInequality) break;
+
+            const column = tableColumns.find(
+              (col) => col.id === sortConfig.columnId,
+            );
+            if (!column || cursor.sortValues[column.name] === undefined)
+              continue;
+
+            const prevValue = cursor.sortValues[column.name];
+            const valueExpr =
+              column.type === "number"
+                ? sql`(${rows.data}->>${column.name})::numeric`
+                : sql`${rows.data}->>${column.name}`;
+
+            const isAsc = sortConfig.direction === "asc";
+
+            keysetConditions.push(
+              sql`(${valueExpr} ${isAsc ? sql`>` : sql`<`} ${prevValue})`,
+            );
+            keysetConditions.push(
+              sql`(${valueExpr} = ${prevValue} AND ${rows.id} > ${lastRowId})`,
+            );
+
+            seenInequality = true;
+          }
+
+          if (keysetConditions.length > 0) {
+            whereConditions.push(
+              sql`(${sql.join(keysetConditions, sql` OR `)})`,
+            );
+          } else {
+            whereConditions.push(gt(rows.id, lastRowId));
+          }
+        } else {
+          whereConditions.push(gt(rows.id, lastRowId));
+        }
+      }
 
       const allRows = await ctx.db
         .select()
@@ -289,10 +341,34 @@ export const tableRouter = createTRPCRouter({
         .limit(pageSize + 1)
         .orderBy(...orderByConditions);
 
-      let nextCursor: number | null = null;
+      let nextCursor: typeof cursor | null = null;
       if (allRows.length > pageSize) {
         const lastRow = allRows.pop();
-        nextCursor = lastRow?.id ?? null;
+        if (lastRow) {
+          const sortValues: Record<string, string | number | null> = {};
+
+          if (hasSortConfig) {
+            for (const sortConfig of viewConfig.sort) {
+              const column = tableColumns.find(
+                (col) => col.id === sortConfig.columnId,
+              );
+              if (!column) continue;
+
+              const colName = column.name;
+              const rowData = lastRow.data as Record<
+                string,
+                string | number | null
+              > | null;
+              sortValues[colName] = rowData?.[colName] ?? null;
+            }
+          }
+
+          nextCursor = {
+            id: lastRow.id,
+            sortValues:
+              Object.keys(sortValues).length > 0 ? sortValues : undefined,
+          };
+        }
       }
 
       return {

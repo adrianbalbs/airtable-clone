@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useParams } from "next/navigation";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { useSearch } from "../contexts/search-context";
 
 type TableData = RouterOutputs["table"]["getTableById"];
 type Column = TableData["columns"][number];
@@ -30,6 +31,7 @@ export default function SortButton() {
   const params = useParams<{ tableId: string }>();
   const tableId = parseInt(params.tableId);
   const utils = api.useUtils();
+  const { searchValue } = useSearch();
   const { data: tableData } = api.table.getTableById.useQuery({
     tableId: tableId,
   });
@@ -59,7 +61,11 @@ export default function SortButton() {
     },
     onSettled: () => {
       void utils.table.getTableById.invalidate({ tableId });
-      void utils.table.fetchRows.invalidate({ tableId });
+      void utils.table.fetchRows.invalidate({
+        tableId,
+        search: searchValue,
+        pageSize: 100,
+      });
     },
     onError: (err, newConfig, context) => {
       if (context?.previousData) {
