@@ -66,14 +66,20 @@ export default function FilterRow({
   onDelete,
   onUpdate,
 }: FilterRowProps) {
-  const findInitialColumn = useCallback(() => {
-    if (!filter?.columnId || !tableData?.columns) return null;
-    return tableData.columns.find((col) => col.id === filter.columnId) ?? null;
-  }, [filter?.columnId, tableData?.columns]);
-
-  const [selectedColumn, setSelectedColumn] = useState<Column | null>(
-    findInitialColumn(),
+  const findColumnById = useCallback(
+    (columnId: number | null | undefined) => {
+      if (!columnId || !tableData?.columns) return null;
+      return tableData.columns.find((col) => col.id === columnId) ?? null;
+    },
+    [tableData?.columns],
   );
+
+  const prevFilterRef = useRef<FilterData | undefined>();
+
+  const [selectedColumn, setSelectedColumn] = useState<Column | null>(() =>
+    findColumnById(filter?.columnId),
+  );
+
   const [operator, setOperator] = useState<Operator>(() => {
     if (filter?.operator) {
       const foundOperator = [...TEXT_OPERATORS, ...NUMBER_OPERATORS].find(
@@ -85,48 +91,47 @@ export default function FilterRow({
   });
 
   const [filterValue, setFilterValue] = useState(filter?.value ?? "");
-  const isChangingColumnRef = useRef(false);
 
   useEffect(() => {
-    if (selectedColumn) {
-      const isNumber = selectedColumn.type === "number";
-      const currentOperatorForType = isNumber
-        ? NUMBER_OPERATORS
-        : TEXT_OPERATORS;
+    if (!filter) return;
 
-      if (!currentOperatorForType.some((op) => op.value === operator.value)) {
-        setOperator(isNumber ? DEFAULT_NUMBER_OPERATOR : DEFAULT_TEXT_OPERATOR);
+    const prevFilter = prevFilterRef.current;
+
+    if (
+      prevFilter?.columnId !== filter.columnId ||
+      prevFilter?.operator !== filter.operator ||
+      prevFilter?.value !== filter.value ||
+      !prevFilter
+    ) {
+      if (prevFilter?.columnId !== filter.columnId || !prevFilter) {
+        const newColumn = findColumnById(filter.columnId);
+        if (newColumn) {
+          setSelectedColumn(newColumn);
+        }
       }
-    }
-  }, [selectedColumn, operator.value]);
 
-  useEffect(() => {
-    const column = findInitialColumn();
-    if (column && !isChangingColumnRef.current) {
-      setSelectedColumn(column);
-    }
-  }, [filter?.columnId, findInitialColumn]);
+      if (prevFilter?.operator !== filter.operator || !prevFilter) {
+        if (filter.operator) {
+          const allOperators = [...TEXT_OPERATORS, ...NUMBER_OPERATORS];
+          const newOperator = allOperators.find(
+            (op) => op.value === filter.operator,
+          );
+          if (newOperator) {
+            setOperator(newOperator);
+          }
+        }
+      }
 
-  useEffect(() => {
-    if (filter) {
-      if (filter.value !== filterValue) {
+      if (prevFilter?.value !== filter.value || !prevFilter) {
         setFilterValue(filter.value);
       }
 
-      if (filter.operator && filter.operator !== operator.value) {
-        const newOperator = [...TEXT_OPERATORS, ...NUMBER_OPERATORS].find(
-          (op) => op.value === filter.operator,
-        );
-        if (newOperator) {
-          setOperator(newOperator);
-        }
-      }
+      prevFilterRef.current = filter;
     }
-  }, [filter, filterValue, operator.value]);
+  }, [filter, findColumnById]);
 
   const updateFilterValue = (newValue: string) => {
     setFilterValue(newValue);
-
     if (selectedColumn && onUpdate) {
       onUpdate(selectedColumn.id, operator.value, newValue);
     }
@@ -149,7 +154,6 @@ export default function FilterRow({
   };
 
   const handleColumnSelect = (column: Column | null) => {
-    isChangingColumnRef.current = true;
     setSelectedColumn(column);
 
     if (column) {
@@ -157,16 +161,13 @@ export default function FilterRow({
         column.type === "number"
           ? DEFAULT_NUMBER_OPERATOR
           : DEFAULT_TEXT_OPERATOR;
+
       setOperator(newOperator);
 
       if (onUpdate) {
         onUpdate(column.id, newOperator.value, filterValue);
       }
     }
-
-    setTimeout(() => {
-      isChangingColumnRef.current = false;
-    }, 0);
   };
 
   const handleOperatorSelect = (op: Operator) => {
