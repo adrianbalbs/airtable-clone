@@ -1,4 +1,4 @@
-import { bases, columns, rows, tables } from "~/server/db/schema";
+import { bases, columns, rows, tables, views } from "~/server/db/schema";
 import { createTRPCRouter, protectedProcedure } from "../trpc";
 import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
@@ -76,6 +76,7 @@ export const baseRouter = createTRPCRouter({
             { table: table.id },
             { table: table.id },
           ]);
+        await tx.insert(views).values({ table: table.id });
         return { ...base, table: table.id };
       });
 

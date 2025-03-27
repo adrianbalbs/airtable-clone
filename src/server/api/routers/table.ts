@@ -61,7 +61,6 @@ export const tableRouter = createTRPCRouter({
 
         const view = await tx.insert(views).values({
           table: table.id,
-          config: {},
         });
         return { ...table, view, columns: _cols };
       });
