@@ -23,7 +23,6 @@ export const createTable = pgTableCreator((name) => `airtable-clone_${name}`);
 
 export const views = createTable("view", {
   id: serial("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
   table: serial("table")
     .references(() => tables.id, { onDelete: "cascade" })
     .notNull(),
@@ -132,7 +131,7 @@ export const tables = createTable("table", {
 export const tablesRelations = relations(tables, ({ many, one }) => ({
   columns: many(columns),
   rows: many(rows),
-  views: many(views),
+  view: one(views),
   base: one(bases, {
     fields: [tables.base],
     references: [bases.id],
