@@ -1,5 +1,4 @@
 import {
-  ListFilter,
   PaintBucket,
   UsersRound,
   ChevronDown,
@@ -7,12 +6,12 @@ import {
   ArrowUpWideNarrow,
   ExternalLink,
   Menu as MenuIcon,
-  EyeOff,
   Sheet,
 } from "lucide-react";
 import SearchMenu from "./search-menu";
 import SortButton from "./sort-button";
 import FilterButton from "./filter-button";
+import HideFieldsButton from "./hide-fields-button";
 
 export default function FilterAndViewBar() {
   return (
@@ -29,10 +28,7 @@ export default function FilterAndViewBar() {
           <UsersRound size={15} className="mr-2" />
           <ChevronDown size={15} />
         </div>
-        <div className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
-          <EyeOff size={15} className="mr-2" />
-          <p className="mr-2">Hide fields</p>
-        </div>
+        <HideFieldsButton />
         <FilterButton />
         <div className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
           <ListTree size={15} className="mr-2" />
