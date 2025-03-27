@@ -171,7 +171,7 @@ export default function AddColumnDropDownButton({
           </MenuButton>
           <MenuItems
             anchor="bottom start"
-            className="h-xl z-20 mt-1 w-[400px] rounded-xl border border-slate-300 bg-white p-4 shadow-lg"
+            className="h-xl z-20 mt-1 w-[400px] rounded-md border border-slate-300 bg-white p-4 shadow-lg"
           >
             <div className="mb-4">
               <Input
