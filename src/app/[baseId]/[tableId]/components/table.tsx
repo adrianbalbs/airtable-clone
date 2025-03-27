@@ -377,7 +377,7 @@ export function Table({ tableId }: TableProps) {
   );
 
   const rowVirtualizer = useVirtualizer({
-    count: Math.min(reactTable.getRowModel().rows.length, 1000),
+    count: reactTable.getRowModel().rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 32,
     overscan: 100,
