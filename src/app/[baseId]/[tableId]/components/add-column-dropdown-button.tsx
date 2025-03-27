@@ -11,6 +11,7 @@ import {
 import { Baseline, ChevronDown, Hash, Plus } from "lucide-react";
 import { useState } from "react";
 import { api, type RouterOutputs } from "~/trpc/react";
+import { TABLE_CONFIG } from "~/app/constants/table";
 
 type TableData = RouterOutputs["table"]["getTableById"];
 type Column = TableData["columns"][number];
@@ -39,7 +40,7 @@ export default function AddColumnDropDownButton({
       });
       const previousRowsData = utils.table.fetchRows.getInfiniteData({
         tableId,
-        pageSize: 100,
+        pageSize: TABLE_CONFIG.PAGE_SIZE,
       });
 
       const tempId = -Date.now();
@@ -63,7 +64,7 @@ export default function AddColumnDropDownButton({
       }
 
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100 },
+        { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE },
         (old) => {
           if (!old) return old;
           return {
@@ -93,7 +94,7 @@ export default function AddColumnDropDownButton({
       }
       if (context?.previousRowsData) {
         utils.table.fetchRows.setInfiniteData(
-          { tableId, pageSize: 100 },
+          { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE },
           context.previousRowsData,
         );
       }
@@ -111,7 +112,7 @@ export default function AddColumnDropDownButton({
         );
 
         utils.table.fetchRows.setInfiniteData(
-          { tableId, pageSize: 100 },
+          { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE },
           (old) => {
             if (!old) return old;
             return {

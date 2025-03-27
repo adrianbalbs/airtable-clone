@@ -18,6 +18,7 @@ import React from "react";
 import AddColumnDropDownButton from "./add-column-dropdown-button";
 import { notFound } from "next/navigation";
 import { useSearch } from "../contexts/search-context";
+import { TABLE_CONFIG } from "~/app/constants/table";
 
 type TableProps = {
   baseId: number;
@@ -106,7 +107,7 @@ export function Table({ tableId }: TableProps) {
   });
 
   const rowsQuery = api.table.fetchRows.useInfiniteQuery(
-    { tableId, pageSize: 100, search: searchValue },
+    { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
     {
       getNextPageParam: (lastPage) => lastPage.nextCursor,
       enabled: tableQuery.isSuccess,
@@ -154,7 +155,7 @@ export function Table({ tableId }: TableProps) {
 
   const applyCellUpdates = useCallback(() => {
     utils.table.fetchRows.setInfiniteData(
-      { tableId, pageSize: 100, search: searchValue },
+      { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
       (old) => {
         if (!old) return old;
         return {
@@ -211,7 +212,7 @@ export function Table({ tableId }: TableProps) {
       };
 
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100, search: searchValue },
+        { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
         (old) => {
           if (!old) return old;
           const lastPageIndex = old.pages.length - 1;
@@ -234,7 +235,7 @@ export function Table({ tableId }: TableProps) {
     },
     onError: (err, _, context) => {
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100, search: searchValue },
+        { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
         (old) => {
           if (!old) return old;
           return {
@@ -249,7 +250,7 @@ export function Table({ tableId }: TableProps) {
     },
     onSuccess: (newRow, _, context) => {
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100, search: searchValue },
+        { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
         (old) => {
           if (!old) return old;
           return {
@@ -283,7 +284,7 @@ export function Table({ tableId }: TableProps) {
       void utils.table.fetchRows.invalidate({
         tableId,
         search: searchValue,
-        pageSize: 100,
+        pageSize: TABLE_CONFIG.PAGE_SIZE,
       });
     },
   });
@@ -394,7 +395,7 @@ export function Table({ tableId }: TableProps) {
     count: reactTable.getRowModel().rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 32,
-    overscan: 100,
+    overscan: 50,
   });
 
   useEffect(() => {

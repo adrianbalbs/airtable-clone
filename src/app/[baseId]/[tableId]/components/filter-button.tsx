@@ -7,6 +7,7 @@ import { api } from "~/trpc/react";
 import { useParams } from "next/navigation";
 import FilterRow from "./filter-row";
 import { useSearch } from "../contexts/search-context";
+import { TABLE_CONFIG } from "~/app/constants/table";
 
 type FilterCondition = {
   id: number;
@@ -52,7 +53,7 @@ export default function FilterButton() {
     onMutate: async (newConfig) => {
       setIsApplyingFilters(true);
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100, search: searchValue },
+        { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
         (old) => {
           if (!old) return { pages: [], pageParams: [] };
           return { ...old, pages: [] };
@@ -83,7 +84,7 @@ export default function FilterButton() {
     onSettled: () => {
       setIsApplyingFilters(false);
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100, search: searchValue },
+        { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
         undefined,
       );
 
@@ -91,7 +92,7 @@ export default function FilterButton() {
       void utils.table.fetchRows.invalidate({
         tableId,
         search: searchValue,
-        pageSize: 100,
+        pageSize: TABLE_CONFIG.PAGE_SIZE,
       });
 
       void refetchTable();

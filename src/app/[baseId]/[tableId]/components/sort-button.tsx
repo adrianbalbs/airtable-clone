@@ -21,6 +21,7 @@ import {
 import { useParams } from "next/navigation";
 import { api, type RouterOutputs } from "~/trpc/react";
 import { useSearch } from "../contexts/search-context";
+import { TABLE_CONFIG } from "~/app/constants/table";
 
 type TableData = RouterOutputs["table"]["getTableById"];
 type Column = TableData["columns"][number];
@@ -39,7 +40,7 @@ export default function SortButton() {
   const updateViewMutation = api.view.updateConfig.useMutation({
     onMutate: async (newConfig) => {
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100, search: searchValue },
+        { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
         (old) => {
           if (!old) return { pages: [], pageParams: [] };
           return { ...old, pages: [] };
@@ -69,7 +70,7 @@ export default function SortButton() {
     },
     onSettled: () => {
       utils.table.fetchRows.setInfiniteData(
-        { tableId, pageSize: 100, search: searchValue },
+        { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
         undefined,
       );
 
@@ -77,7 +78,7 @@ export default function SortButton() {
       void utils.table.fetchRows.invalidate({
         tableId,
         search: searchValue,
-        pageSize: 100,
+        pageSize: TABLE_CONFIG.PAGE_SIZE,
       });
     },
     onError: (err, newConfig, context) => {

@@ -5,6 +5,7 @@ import FilterAndViewBar from "./components/filter-and-view-bar";
 import Sidebar from "./components/sidebar";
 import { Table } from "./components/table";
 import { SearchProvider } from "./contexts/search-context";
+import { TABLE_CONFIG } from "~/app/constants/table";
 
 export default async function Base({
   params,
@@ -17,7 +18,10 @@ export default async function Base({
 
   await api.base.getBaseById.prefetch({ id: baseId });
   await api.table.getTableById.prefetch({ tableId });
-  await api.table.fetchRows.prefetchInfinite({ tableId, pageSize: 100 });
+  await api.table.fetchRows.prefetchInfinite({
+    tableId,
+    pageSize: TABLE_CONFIG.PAGE_SIZE,
+  });
 
   return (
     <HydrateClient>
