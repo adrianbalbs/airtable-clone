@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, memo, useCallback } from "react";
+import { TABLE_CONFIG } from "~/app/constants/table";
 import { api } from "~/trpc/react";
 
 type EditableCellProps = {
@@ -47,7 +48,7 @@ export const EditableCell = memo(function EditableCell({
     onError: (err, variables, context) => {
       if (context?.previousValue !== undefined) {
         utils.table.fetchRows.setInfiniteData(
-          { tableId, pageSize: 100 },
+          { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE },
           (old) => {
             if (!old) return old;
             return {
