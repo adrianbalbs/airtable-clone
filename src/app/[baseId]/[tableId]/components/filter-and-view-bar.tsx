@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import SearchMenu from "./search-menu";
 import SortButton from "./sort-button";
+import FilterButton from "./filter-button";
 
 export default function FilterAndViewBar() {
   return (
@@ -32,10 +33,7 @@ export default function FilterAndViewBar() {
           <EyeOff size={15} className="mr-2" />
           <p className="mr-2">Hide fields</p>
         </div>
-        <div className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
-          <ListFilter size={15} className="mr-2" />
-          <p className="mr-2">Filter</p>
-        </div>
+        <FilterButton />
         <div className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
           <ListTree size={15} className="mr-2" />
           <p className="mr-2">Group</p>
