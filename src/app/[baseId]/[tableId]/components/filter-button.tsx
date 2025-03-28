@@ -24,10 +24,9 @@ export default function FilterButton() {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [nextFilterId, setNextFilterId] = useState(2);
 
-  const { data: tableData  } =
-    api.table.getTableById.useQuery({
-      tableId,
-    });
+  const { data: tableData } = api.table.getTableById.useQuery({
+    tableId,
+  });
 
   useEffect(() => {
     if (tableData?.view?.config?.filters?.length) {
@@ -219,6 +218,7 @@ export default function FilterButton() {
         <div>
           <MenuButton className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
             <ListFilter size={15} className="mr-2" />
+            <p>Filter</p>
           </MenuButton>
           <MenuItems
             anchor="bottom start"
