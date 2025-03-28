@@ -17,15 +17,14 @@ type FilterCondition = {
 };
 
 export default function FilterButton() {
-  const params = useParams();
-  const tableId = parseInt(params.tableId as string, 10);
+  const params = useParams<{ tableId: string }>();
+  const tableId = parseInt(params.tableId);
   const utils = api.useUtils();
   const { searchValue } = useSearch();
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [nextFilterId, setNextFilterId] = useState(2);
-  const [isApplyingFilters, setIsApplyingFilters] = useState(false);
 
-  const { data: tableData, refetch: refetchTable } =
+  const { data: tableData  } =
     api.table.getTableById.useQuery({
       tableId,
     });
@@ -51,7 +50,6 @@ export default function FilterButton() {
 
   const updateViewMutation = api.view.updateConfig.useMutation({
     onMutate: async (newConfig) => {
-      setIsApplyingFilters(true);
       utils.table.fetchRows.setInfiniteData(
         { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
         (old) => {
@@ -82,7 +80,6 @@ export default function FilterButton() {
       return { previousData };
     },
     onSettled: () => {
-      setIsApplyingFilters(false);
       utils.table.fetchRows.setInfiniteData(
         { tableId, pageSize: TABLE_CONFIG.PAGE_SIZE, search: searchValue },
         undefined,
@@ -94,11 +91,8 @@ export default function FilterButton() {
         search: searchValue,
         pageSize: TABLE_CONFIG.PAGE_SIZE,
       });
-
-      void refetchTable();
     },
     onError: (err, newConfig, context) => {
-      setIsApplyingFilters(false);
       if (context?.previousData) {
         utils.table.getTableById.setData({ tableId }, context.previousData);
       }
@@ -225,10 +219,6 @@ export default function FilterButton() {
         <div>
           <MenuButton className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
             <ListFilter size={15} className="mr-2" />
-            <p className="mr-2">Filter</p>
-            {(updateViewMutation.isPending || isApplyingFilters) && (
-              <span className="ml-1 h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
-            )}
           </MenuButton>
           <MenuItems
             anchor="bottom start"

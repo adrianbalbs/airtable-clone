@@ -179,9 +179,6 @@ export default function SortButton() {
       <MenuButton className="mr-2 flex cursor-pointer items-center rounded-sm px-2 py-1 hover:bg-slate-200">
         <ArrowDownUp size={15} className="mr-2" />
         <p className="mr-2">Sort</p>
-        {updateViewMutation.isPending && (
-          <span className="ml-1 h-3 w-3 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
-        )}
       </MenuButton>
       <MenuItems
         anchor="bottom start"
