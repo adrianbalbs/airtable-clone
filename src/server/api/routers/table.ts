@@ -146,7 +146,6 @@ export const tableRouter = createTRPCRouter({
           const currentBatchSize = Math.min(batchSize, numRows - i * batchSize);
           const fakeRows = Array.from({ length: currentBatchSize }, () => {
             const rowData: Record<string, string | number | null> = {};
-
             cols.forEach((col) => {
               if (col.type === "text") {
                 rowData[col.name] = faker.person.fullName();
